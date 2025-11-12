@@ -1,122 +1,173 @@
 import 'package:flutter/material.dart';
+import 'data/models/beverage.dart';
+import 'data/models/drink_log.dart';
+import 'data/models/user_settings.dart';
 
 void main() {
-  runApp(const MyApp());
+  // Models Teset
+  testModels();
+  
+  runApp(MyApp());
+}
+
+/// Test various model functionalities
+void testModels() {
+  print('========== Models Test ==========');
+  
+  // 1. Beverage Test
+  print('\n[Test 1: Beverage]');
+  final water = Beverage(
+    id: 1,
+    name: 'Water',
+    caffeinePerOz: 0.0,
+    hydrationFactor: 1.0,
+    defaultVolumeOz: 8,
+  );
+  print('Name: ${water.name}');
+  print('Caffeine per oz: ${water.caffeinePerOz} mg');
+  print('Default volume: ${water.defaultVolumeOz} oz');
+  
+  // toMap Test
+  final waterMap = water.toMap();
+  print('toMap: $waterMap');
+  
+  // fromMap Test
+  final waterFromMap = Beverage.fromMap(waterMap);
+  print('fromMap name: ${waterFromMap.name}');
+  
+  // 2. DrinkLog Test
+  print('\n[Test 2: DrinkLog]');
+  final log = DrinkLog(
+    id: 1,
+    beverageId: 1,
+    beverageName: 'Water',
+    volumeOz: 8.0,
+    timestamp: DateTime.now(),
+    hydrationOz: 8.0,
+    caffeineMg: 0.0,
+  );
+  print('Beverage: ${log.beverageName}');
+  print('Volume: ${log.volumeOz} oz');
+  print('Time: ${log.timestamp}');
+  
+  final logMap = log.toMap();
+  print('toMap: $logMap');
+  
+  // 3. UserSettings Test
+  print('\n[Test 3: UserSettings]');
+  final settings = UserSettings.defaultSettings();
+  print('Height: ${settings.heightIn} inches (${settings.heightFormatted})');
+  print('Weight: ${settings.weightLb} lb');
+  print('Daily Goal: ${settings.dailyGoalOz} oz');
+  
+  final settingsMap = settings.toMap();
+  print('toMap: $settingsMap');
+  
+  print('\n========== All Tests Passed! ==========\n');
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'HydraTrack',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: TestScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
+/// Test Screen to display model test results
+class TestScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    // Models for display
+    final water = Beverage(
+      id: 1,
+      name: 'Water',
+      caffeinePerOz: 0.0,
+      hydrationFactor: 1.0,
+      defaultVolumeOz: 8,
+    );
+    
+    final settings = UserSettings.defaultSettings();
+    
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('HydraTrack - Models Test'),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Models Test',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 32),
+              
+              // Beverage information display
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Beverage: ${water.name}',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Caffeine: ${water.caffeinePerOz} mg/oz'),
+                      Text('Hydration Factor: ${water.hydrationFactor}'),
+                      Text('Default Volume: ${water.defaultVolumeOz} oz'),
+                    ],
+                  ),
+                ),
+              ),
+              
+              SizedBox(height: 16),
+              
+              // UserSettings information display
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'User Settings',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Height: ${settings.heightFormatted}'),
+                      Text('Weight: ${settings.weightLb} lb'),
+                      Text('Daily Goal: ${settings.dailyGoalOz} oz'),
+                    ],
+                  ),
+                ),
+              ),
+              
+              SizedBox(height: 32),
+              
+              Text(
+                'Check console for detailed test results',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
