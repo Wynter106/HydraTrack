@@ -85,11 +85,19 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: Text('Database Test'),
+  title: const Text('Database Test'),
   backgroundColor: Colors.blue,
   actions: [
     IconButton(
-      icon: Icon(Icons.settings),
+      icon: const Icon(Icons.emoji_events_outlined), // trophy icon
+      tooltip: 'Goals & Badges',
+      onPressed: () {
+        Navigator.pushNamed(context, '/goals');
+      },
+    ),
+    IconButton(
+      icon: const Icon(Icons.settings),
+      tooltip: 'Settings',
       onPressed: () {
         Navigator.pushNamed(context, '/settings');
       },
