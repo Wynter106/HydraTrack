@@ -13,6 +13,9 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
   bool isLoading = false;
   String statusMessage = 'Ready to test';
 
+
+  
+
   // Test: Load all beverages
   Future<void> testLoadAll() async {
     setState(() {
@@ -82,8 +85,16 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Database Test'),
-        backgroundColor: Colors.blue,
+  title: Text('Database Test'),
+  backgroundColor: Colors.blue,
+  actions: [
+    IconButton(
+      icon: Icon(Icons.settings),
+      onPressed: () {
+        Navigator.pushNamed(context, '/settings');
+      },
+    ),
+  ],
       ),
       body: SafeArea(
         child: Column(
