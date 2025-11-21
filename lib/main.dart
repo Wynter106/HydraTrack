@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'presentation/theme/app_theme.dart'; 
 import '../presentation/screens/log_screen.dart';
+import 'presentation/screens/test_database_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,8 +18,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
 
       theme: AppTheme.lightTheme,
-      home: LogScreen(),    
       
+      routes: {
+        '/': (context) => TestDatabaseScreen(),
+        '/log': (context) => LogScreen(),
+      }
     );
   }
 }

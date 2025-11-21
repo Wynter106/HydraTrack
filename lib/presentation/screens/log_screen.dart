@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:hydratrack/data/models/drink_log.dart';
 import '../../data/dao/beverages_dao.dart';
 import '../../data/models/beverage.dart';
 
@@ -10,15 +11,15 @@ class LogScreen extends StatefulWidget {
 
 class _LogScreenState extends State<LogScreen> {
   final BeverageDao dao = BeverageDao();
-  List<Beverage> beverages = [];
+  List<DrinkLog> log = [];
   bool isLoading = false;
   String statusMessage = 'Ready to test';
-  int hydragoal = 1400;
-  int currhydra = 0;
-  int cafflim = 400;
-  int currcaff = 0;
-  int coffcaff = 80;
-  int coffhydra = 190;
+  double hydragoal = 1400;
+  double currhydra = 0;
+  double cafflim = 400;
+  double currcaff = 0;
+  double coffcaff = 80;
+  double coffhydra = 190;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +27,15 @@ class _LogScreenState extends State<LogScreen> {
       appBar: AppBar(
         title: Text('Log Test'),
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.emoji_events_outlined), // trophy icon
+            tooltip: 'Test Database',
+            onPressed: () {
+              Navigator.pushNamed(context, '/');
+            },
+          ),
+        ]
       ),
       body: SafeArea(
         child: Column(
@@ -102,14 +112,31 @@ class _LogScreenState extends State<LogScreen> {
                     child: Text('Add coffee'),
                   ),
                   ElevatedButton(
-                    onPressed: null,
-                    child: Text('Go to database'),
-                  ),
-                  ElevatedButton(
                     onPressed: isLoading ? null : testReset,
                     child: Text('New day'),
                   ),
                 ],
+              ),
+            ),
+
+            Expanded(
+              child: ListView.builder(
+                itemCount: log.length,
+                itemBuilder: (context, index) {
+                  final beverage = log[index];
+                  return ListTile(
+                    title: Text('${beverage.id}'),
+                    subtitle: Text(
+                      'Time: ${beverage.timestamp} mg/oz | '
+                      'Hydration: ${beverage.actualHydrationOz}',
+                    ),
+                    leading: Text('${beverage.volumeOz} oz'),
+                    trailing: IconButton(
+                                onPressed: null,//deleteBev(index),
+                                icon: const Icon(Icons.delete)
+                              ),
+                  );
+                },
               ),
             ),
 
@@ -137,6 +164,7 @@ class _LogScreenState extends State<LogScreen> {
         currhydra += 200;
         statusMessage = 'Added 200ml of water';
         isLoading = false;
+        log.add(DrinkLog(beverageId: 1, volumeOz: 200, timestamp: DateTime.now(), actualHydrationOz: 200));
       });
     } catch (e) {
       setState(() {
@@ -145,6 +173,31 @@ class _LogScreenState extends State<LogScreen> {
       });
     }
   }
+
+  VoidCallback deleteBev(int index) {
+    setState(() {
+      isLoading = true;
+      statusMessage = 'Removing log...';
+    });
+
+    try {
+      setState(() {
+        currhydra -= log[index].actualHydrationOz;
+        isLoading = false;
+        log.removeAt(index);
+        return;
+      });
+    } catch (e) {
+      setState(() {
+        statusMessage = 'Error: $e';
+        isLoading = false;
+        return;
+      });
+    }
+    return doNothing;
+  }
+
+  void doNothing(){}
 
   Future<void> testReset() async {
     setState(() {
@@ -158,6 +211,7 @@ class _LogScreenState extends State<LogScreen> {
         currcaff = 0;
         statusMessage = 'Reset';
         isLoading = false;
+        log = [];
       });
     } catch (e) {
       setState(() {
@@ -180,6 +234,7 @@ class _LogScreenState extends State<LogScreen> {
         currcaff += coffcaff;
         statusMessage = 'Added 200ml of coffee';
         isLoading = false;
+        log.add(DrinkLog(beverageId: 2, volumeOz: 200, timestamp: DateTime.now(), actualHydrationOz: 190));
       });
     } catch (e) {
       setState(() {
