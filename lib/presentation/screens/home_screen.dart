@@ -79,10 +79,10 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             AppButton(
-              label: 'Open Drink Library (TODO)',
+              label: 'Open Log Screen  (TODO)',
               filled: false,
               onPressed: () {
-                debugPrint('TODO: navigate to drink library');
+                debugPrint('TODO: navigate to log screen');
               },
             ),
           ],
