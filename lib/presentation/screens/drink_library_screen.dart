@@ -1,73 +1,47 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_card.dart';
 import '../widgets/app_button.dart';
+import '../../data/dao/beverages_dao.dart';
+import '../../data/models/beverage.dart'; 
 
-class DrinkLibraryScreen extends StatelessWidget {
+class DrinkLibraryScreen extends StatefulWidget {
   const DrinkLibraryScreen({super.key});
 
-  // Hardcoded mock drinks for now (will be replaced by DB later)
-  static const List<Map<String, dynamic>> _mockDrinks = [
-    {
-      'name': 'Water',
-      'volumeOz': 8,
-      'caffeineMg': 0,
-      'hydrationFactor': 1.0,
-    },
-    {
-      'name': 'Black Coffee',
-      'volumeOz': 8,
-      'caffeineMg': 95,
-      'hydrationFactor': 0.7,
-    },
-    {
-      'name': 'Latte',
-      'volumeOz': 12,
-      'caffeineMg': 80,
-      'hydrationFactor': 0.8,
-    },
-    {
-      'name': 'Green Tea',
-      'volumeOz': 8,
-      'caffeineMg': 35,
-      'hydrationFactor': 0.9,
-    },
-    {
-      'name': 'Energy Drink',
-      'volumeOz': 16,
-      'caffeineMg': 160,
-      'hydrationFactor': 0.6,
-    },
-    {
-      'name': 'Soda',
-      'volumeOz': 12,
-      'caffeineMg': 40,
-      'hydrationFactor': 0.8,
-    },
-    {
-      'name': 'Sports Drink',
-      'volumeOz': 16,
-      'caffeineMg': 0,
-      'hydrationFactor': 1.1,
-    },
-    {
-      'name': 'Milk',
-      'volumeOz': 8,
-      'caffeineMg': 0,
-      'hydrationFactor': 1.0,
-    },
-    {
-      'name': 'Decaf Coffee',
-      'volumeOz': 8,
-      'caffeineMg': 5,
-      'hydrationFactor': 0.9,
-    },
-    {
-      'name': 'Iced Tea',
-      'volumeOz': 12,
-      'caffeineMg': 60,
-      'hydrationFactor': 0.8,
-    },
-  ];
+  @override
+  State<DrinkLibraryScreen> createState() => _DrinkLibraryScreenState();
+}
+
+class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
+
+  final BeverageDao dao = BeverageDao();
+  List<Beverage> beverages = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBeverages();
+  }
+
+  Future<void> _loadBeverages() async {
+    try {
+      final result = await dao.getAllBeverages();
+      setState(() {
+        beverages = result;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      debugPrint('Error loading beverages: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load drinks: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,31 +63,47 @@ class DrinkLibraryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            Expanded(
-              child: ListView.separated(
-                itemCount: _mockDrinks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final drink = _mockDrinks[index];
+            if (isLoading)
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              )
 
-                  return AppCard(
-                    child: ListTile(
-                      title: Text(drink['name'] as String),
-                      subtitle: Text(
-                        'Volume: ${drink['volumeOz']} oz\n'
-                        'Caffeine: ${drink['caffeineMg']} mg  |  '
-                        'Hydration: ${drink['hydrationFactor']}x',
+            else if (beverages.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text('No drinks found in database'),
+                ),
+              )
+
+            else
+              Expanded(
+                child: ListView.separated(
+                  itemCount: beverages.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final beverage = beverages[index];
+                    final totalCaffeine = beverage.caffeinePerOz * beverage.defaultVolumeOz;
+
+                    return AppCard(
+                      child: ListTile(
+                        title: Text(beverage.name),
+                        subtitle: Text(
+                          'Volume: ${beverage.defaultVolumeOz.toStringAsFixed(1)} oz\n'
+                          'Caffeine: ${totalCaffeine.toStringAsFixed(0)} mg  |  '
+                          'Hydration: ${beverage.hydrationFactor.toStringAsFixed(2)}x',
+                        ),
+                        isThreeLine: true,
+                        onTap: () {
+                          debugPrint('Selected ${beverage.name}');
+                          // Later: open drink details / add to log
+                        },
                       ),
-                      isThreeLine: true,
-                      onTap: () {
-                        debugPrint('Selected ${drink['name']}');
-                        // Later: open drink details / add to log
-                      },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
 
             const SizedBox(height: 12),
 
