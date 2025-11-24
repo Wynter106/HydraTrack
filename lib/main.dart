@@ -3,6 +3,8 @@ import 'presentation/theme/app_theme.dart';
 import 'presentation/screens/home_screen.dart';
 import 'presentation/screens/log_screen.dart';
 import 'presentation/screens/drink_library_screen.dart';
+import 'presentation/screens/user_goals_screen.dart';
+import 'presentation/screens/user_settings_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -21,6 +23,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/library': (context) => DrinkLibraryScreen(),
         '/log': (context) => LogScreen(),
+        '/settings': (context) => SettingsScreen(),
+        '/goals': (context) => const UserGoalsScreen(),
       },
     );
   }

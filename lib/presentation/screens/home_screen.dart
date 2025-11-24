@@ -85,6 +85,25 @@ class HomeScreen extends StatelessWidget {
                 Navigator.pushNamed(context, '/log');
               },
             ),
+            const SizedBox(height: 12),
+
+            AppButton(
+              label: 'Goals',
+              filled: false,
+              onPressed: () {
+                Navigator.pushNamed(context, '/goals');
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            AppButton(
+              label: 'Settings',
+              filled: false,
+              onPressed: () {
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
           ],
         ),
       ),

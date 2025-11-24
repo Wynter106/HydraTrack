@@ -13,6 +13,9 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
   bool isLoading = false;
   String statusMessage = 'Ready to test';
 
+
+  
+
   // Test: Load all beverages
   Future<void> testLoadAll() async {
     setState(() {
@@ -82,6 +85,7 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+<<<<<<< HEAD
         title: Text('Database Test'),
         backgroundColor: Colors.blue,
         actions: [
@@ -94,6 +98,26 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
           ),
   ],
 
+=======
+  title: const Text('Database Test'),
+  backgroundColor: Colors.blue,
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.emoji_events_outlined), // trophy icon
+      tooltip: 'Goals & Badges',
+      onPressed: () {
+        Navigator.pushNamed(context, '/goals');
+      },
+    ),
+    IconButton(
+      icon: const Icon(Icons.settings),
+      tooltip: 'Settings',
+      onPressed: () {
+        Navigator.pushNamed(context, '/settings');
+      },
+    ),
+  ],
+>>>>>>> origin/wilkersettings
       ),
       
       body: SafeArea(
