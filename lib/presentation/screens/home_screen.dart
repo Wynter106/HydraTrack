@@ -79,10 +79,10 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             AppButton(
-              label: 'Open Log Screen  (TODO)',
+              label: 'Open Log Screen',
               filled: false,
               onPressed: () {
-                debugPrint('TODO: navigate to log screen');
+                Navigator.pushNamed(context, '/log');
               },
             ),
           ],

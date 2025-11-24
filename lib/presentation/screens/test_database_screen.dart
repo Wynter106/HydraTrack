@@ -84,7 +84,18 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
       appBar: AppBar(
         title: Text('Database Test'),
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.view_headline), // trophy icon
+            tooltip: 'Log',
+            onPressed: () {
+              Navigator.pushNamed(context, '/log');
+            },
+          ),
+  ],
+
       ),
+      
       body: SafeArea(
         child: Column(
           children: [
