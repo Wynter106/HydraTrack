@@ -15,7 +15,11 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
 
   final BeverageDao dao = BeverageDao();
   List<Beverage> beverages = [];
+
+  List<Beverage> filteredBeverages = [];
+   
   bool isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -28,6 +32,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
       final result = await dao.getAllBeverages();
       setState(() {
         beverages = result;
+         filteredBeverages = result;
         isLoading = false;
       });
     } catch (e) {
@@ -42,6 +47,30 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
       }
     }
   }
+
+
+
+
+void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim().toLowerCase();
+
+      if (_searchQuery.isEmpty) {
+        
+        filteredBeverages = beverages;
+      } else {
+        filteredBeverages = beverages.where((bev) {
+          final name = bev.name.toLowerCase();
+          return name.contains(_searchQuery);
+        }).toList();
+      }
+    });
+  }
+
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +92,19 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
             ),
             const SizedBox(height: 16),
 
+             TextField(
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: 'Search drinks by name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                isDense: true,
+              ),
+              onChanged: _onSearchChanged,
+            ),
+            const SizedBox(height: 16),
+
             if (isLoading)
               const Expanded(
                 child: Center(
@@ -77,13 +119,20 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                 ),
               )
 
+             else if (filteredBeverages.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: Text('No drinks match your search'),
+                ),
+              )
+
             else
               Expanded(
                 child: ListView.separated(
-                  itemCount: beverages.length,
+                  itemCount: filteredBeverages.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    final beverage = beverages[index];
+                    final beverage = filteredBeverages[index];
                     final totalCaffeine = beverage.caffeinePerOz * beverage.defaultVolumeOz;
 
                     return AppCard(
