@@ -201,7 +201,7 @@ class LogScreen extends StatelessWidget {
     final lowerName = name.toLowerCase();
     
     if (lowerName.contains('water')) return Icons.water_drop;
-    if (lowerName.contains('coffee') || lowerName.contains('mocha') || lowerName.contains('latte') || lowerName.contains('cold brew') || lowerName.contains('cappucino')) return Icons.coffee;
+    if (lowerName.contains('coffee') || lowerName.contains('mocha') || lowerName.contains('latte') || lowerName.contains('cold brew') || lowerName.contains('cappuccino')) return Icons.coffee;
     if (lowerName.contains('tea') || lowerName.contains('chai')) return Icons.emoji_food_beverage;
     if (lowerName.contains('energy') || lowerName.contains('red bull') || caff > 70) return Icons.bolt;
     if (lowerName.contains('cola') || lowerName.contains('soda')) return Icons.local_drink;
@@ -214,7 +214,7 @@ class LogScreen extends StatelessWidget {
     final lowerName = name.toLowerCase();
     
     if (lowerName.contains('water')) return Colors.blue;
-    if (lowerName.contains('coffee') || lowerName.contains('mocha') || lowerName.contains('latte') || lowerName.contains('cold brew') || lowerName.contains('cappucino')) return Colors.black;
+    if (lowerName.contains('coffee') || lowerName.contains('mocha') || lowerName.contains('latte') || lowerName.contains('cold brew') || lowerName.contains('cappuccino')) return Colors.black;
     if (lowerName.contains('tea') || lowerName.contains('chai')) return Colors.green;
     if (lowerName.contains('energy') || lowerName.contains('red bull') || caff > 70) return Colors.orange;
     if (lowerName.contains('cola') || lowerName.contains('soda')) return Colors.red;
