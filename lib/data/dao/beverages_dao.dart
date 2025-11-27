@@ -54,4 +54,19 @@ class BeverageDao {
     );
     return count ?? 0;
   }
+
+  /// Get beverage by exact name match
+  /// Use this for Quick Add buttons where we know the exact name
+  Future<Beverage?> getBeverageByExactName(String name) async {
+    final db = await DatabaseHelper.instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      TableNames.beverages,
+      where: '${BeverageColumns.name} = ?',
+      whereArgs: [name],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return Beverage.fromMap(maps.first);
+  }
 }

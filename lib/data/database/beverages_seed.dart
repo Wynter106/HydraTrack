@@ -644,15 +644,12 @@ final List<Map<String, dynamic>> beveragesSeed = [
   {'name': 'Zoa Energy Drink', 'caffeine_per_oz': 10, 'hydration_factor': 0.8, 'default_volume_oz': 16},
   {'name': 'Zola Coconut Water Espresso', 'caffeine_per_oz': 7.1, 'hydration_factor': 0.85, 'default_volume_oz': 18},
   {'name': 'Zombie Blood Energy Potion', 'caffeine_per_oz': 23.5, 'hydration_factor': 0.75, 'default_volume_oz': 3},
-];
-
-final List<Map<String, dynamic>> noCaffeineDrinks = [
-  {'name': 'Water (Plain)', 'caffeine_per_oz': 0, 'hydration_factor': 1.0, 'default_volume_oz': 8},
-  {'name': 'Sparkling Water (Plain)', 'caffeine_per_oz': 0, 'hydration_factor': 1.0, 'default_volume_oz': 12},
+  // non-caffiene drinks
+  {'name': 'Water', 'caffeine_per_oz': 0, 'hydration_factor': 1.0, 'default_volume_oz': 8},
+  {'name': 'Sparkling Water', 'caffeine_per_oz': 0, 'hydration_factor': 1.0, 'default_volume_oz': 12},
   {'name': 'Milk', 'caffeine_per_oz': 0, 'hydration_factor': 0.95, 'default_volume_oz': 8},
   {'name': 'Orange Juice', 'caffeine_per_oz': 0, 'hydration_factor': 0.9, 'default_volume_oz': 8},
   {'name': 'Apple Juice', 'caffeine_per_oz': 0, 'hydration_factor': 0.9, 'default_volume_oz': 8},
   {'name': 'Sprite', 'caffeine_per_oz': 0, 'hydration_factor': 0.85, 'default_volume_oz': 12},
-  {'name': '7UP', 'caffeine_per_oz': 0, 'hydration_factor': 0.85, 'default_volume_oz': 12},
   {'name': 'Ginger Ale', 'caffeine_per_oz': 0, 'hydration_factor': 0.85, 'default_volume_oz': 12},
 ];

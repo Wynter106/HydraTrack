@@ -96,8 +96,9 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                         ),
                         isThreeLine: true,
                         onTap: () {
-                          debugPrint('Selected ${beverage.name}');
-                          // Later: open drink details / add to log
+                          // Delete this comment later
+                          // debugPrint('Selected ${beverage.name}');
+                          Navigator.pop(context, beverage);
                         },
                       ),
                     );

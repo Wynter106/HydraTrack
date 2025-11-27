@@ -1,246 +1,224 @@
-
 import 'package:flutter/material.dart';
-import 'package:hydratrack/data/models/drink_log.dart';
-import '../../data/dao/beverages_dao.dart';
-import '../../data/models/beverage.dart';
+import 'package:provider/provider.dart';
+import '../../application/providers/hydration_provider.dart';
 
-class LogScreen extends StatefulWidget {
-  @override
-  _LogScreenState createState() => _LogScreenState();
-}
-
-class _LogScreenState extends State<LogScreen> {
-  final BeverageDao dao = BeverageDao();
-  List<DrinkLog> log = [];
-  bool isLoading = false;
-  String statusMessage = 'Ready to test';
-  double hydragoal = 1400;
-  double currhydra = 0;
-  double cafflim = 400;
-  double currcaff = 0;
-  double coffcaff = 80;
-  double coffhydra = 190;
+/// LogScreen - Shows today's drink history
+/// 
+/// This screen:
+/// - Displays all drinks logged today from Provider
+/// - Shows same data as HomeScreen (shared via Provider)
+/// - Allows deleting drinks from the log
+/// - Updates automatically when Provider data changes
+class LogScreen extends StatelessWidget {
+  const LogScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Get data from Provider (same data HomeScreen uses)
+    final provider = Provider.of<HydrationProvider>(context);
+    final logs = provider.todayLogs;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Log Test'),
+        title: const Text('Today\'s Log'),
         backgroundColor: Colors.blue,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.emoji_events_outlined), // trophy icon
-            tooltip: 'Test Database',
-            onPressed: () {
-              Navigator.pushNamed(context, '/');
-            },
-          ),
-        ]
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Status message
-            Container(
-              padding: EdgeInsets.all(16),
-              color: Colors.grey[200],
-              width: double.infinity,
+          // Show total count
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
               child: Text(
-                statusMessage,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                '${logs.length} drinks',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
-
-            //Test charts
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 8,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        height: 200 - (currhydra / hydragoal) * 200,
-                        width: 50,
-                        color: Colors.grey,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // ==================== SUMMARY CARD ====================
+          // Shows same totals as HomeScreen (from Provider)
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.blue[50],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                // Hydration total
+                Column(
+                  children: [
+                    const Icon(Icons.water_drop, color: Colors.blue),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${provider.hydrationCurrent.toStringAsFixed(1)} oz',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
-                      Container(
-                        height: (currhydra / hydragoal) * 200,
-                        width: 50,
-                        color: Colors.blue,
-                      ),
-                      Text('Current Hydration: $currhydra ml'),
-                      Text('Hydration Goal: $hydragoal ml')
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Container(
-                        height: 200 - (currcaff / cafflim) * 200,
-                        width: 50,
-                        color: Colors.grey,
-                      ),
-                      Container(
-                        height: (currcaff / cafflim) * 200,
-                        width: 50,
-                        color: Colors.red,
-                      ),
-                      Text('Current Caffeine: $currcaff ml'),
-                      Text('Caffeine Limit: $cafflim ml')
-                    ],
-                  ),
-                ]
-              ),
-            ),
-
-            // Test buttons
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ElevatedButton(
-                    onPressed: isLoading ? null : testAddWater,
-                    child: Text('Add water'),
-                  ),
-                  ElevatedButton(
-                    onPressed: isLoading ? null : testAddCoffee,
-                    child: Text('Add coffee'),
-                  ),
-                  ElevatedButton(
-                    onPressed: isLoading ? null : testReset,
-                    child: Text('New day'),
-                  ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: ListView.builder(
-                itemCount: log.length,
-                itemBuilder: (context, index) {
-                  final beverage = log[index];
-                  return ListTile(
-                    title: Text('${beverage.id}'),
-                    subtitle: Text(
-                      'Time: ${beverage.timestamp} mg/oz | '
-                      'Hydration: ${beverage.actualHydrationOz}',
                     ),
-                    leading: Text('${beverage.volumeOz} oz'),
-                    trailing: IconButton(
-                                onPressed: null,//deleteBev(index),
-                                icon: const Icon(Icons.delete)
-                              ),
-                  );
-                },
-              ),
+                    Text('/ ${provider.hydrationGoal.toStringAsFixed(0)} oz goal'),
+                  ],
+                ),
+                // Caffeine total
+                Column(
+                  children: [
+                    Icon(
+                      Icons.bolt,
+                      color: provider.isNearCaffeineLimit ? Colors.red : Colors.orange,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${provider.caffeineCurrent.toStringAsFixed(0)} mg',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: provider.isNearCaffeineLimit ? Colors.red : null,
+                      ),
+                    ),
+                    Text('/ ${provider.caffeineLimit.toStringAsFixed(0)} mg limit'),
+                  ],
+                ),
+              ],
             ),
+          ),
 
-            // Loading indicator
-            if (isLoading)
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
-              ),
-          ],
-        ),
+          // ==================== DRINK LOG LIST ====================
+          // Shows all drinks added from HomeScreen
+          Expanded(
+            child: logs.isEmpty
+                // Empty state
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.local_drink_outlined, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'No drinks logged yet',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Add drinks from Home screen',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                // Log list
+                : ListView.builder(
+                    itemCount: logs.length,
+                    itemBuilder: (context, index) {
+                      // Show newest first (reverse order)
+                      final reversedIndex = logs.length - 1 - index;
+                      final log = logs[reversedIndex];
+                      
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: ListTile(
+                          // Drink icon
+                          leading: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _getIconForDrink(log['beverageName'] as String?),
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatTime(log['timestamp'] as String?),
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ],
+                          ),
+                          // Drink name
+                          title: Text(
+                            log['beverageName'] as String? ?? 'Unknown',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          // Drink details
+                          subtitle: Text(
+                            'Volume: ${(log['volumeOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz\n'
+                            'Hydration: +${(log['actualHydrationOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz '
+                            '(factor: ${log['hydrationFactor'] ?? '?'})\n'
+                            'Caffeine: +${(log['caffeineMg'] as double?)?.toStringAsFixed(0) ?? '0'} mg'
+                          ),
+                          isThreeLine: true,
+                          // Delete button
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            onPressed: () => _confirmDelete(context, provider, reversedIndex, log),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
 
-  // Test: Add water
-  Future<void> testAddWater() async {
-    setState(() {
-      isLoading = true;
-      statusMessage = 'Adding water...';
-    });
-
-    try {
-      setState(() {
-        currhydra += 200;
-        statusMessage = 'Added 200ml of water';
-        isLoading = false;
-        log.add(DrinkLog(beverageId: 1, volumeOz: 200, timestamp: DateTime.now(), actualHydrationOz: 200));
-      });
-    } catch (e) {
-      setState(() {
-        statusMessage = 'Error: $e';
-        isLoading = false;
-      });
-    }
+  /// Shows confirmation dialog before deleting a drink
+  void _confirmDelete(
+    BuildContext context, 
+    HydrationProvider provider, 
+    int index, 
+    Map<String, dynamic> log
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove drink?'),
+        content: Text('Remove ${log['beverageName']} from today\'s log?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              provider.removeDrink(index);
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  VoidCallback deleteBev(int index) {
-    setState(() {
-      isLoading = true;
-      statusMessage = 'Removing log...';
-    });
-
-    try {
-      setState(() {
-        currhydra -= log[index].actualHydrationOz;
-        isLoading = false;
-        log.removeAt(index);
-        return;
-      });
-    } catch (e) {
-      setState(() {
-        statusMessage = 'Error: $e';
-        isLoading = false;
-        return;
-      });
-    }
-    return doNothing;
+  /// Returns appropriate icon based on drink name
+  IconData _getIconForDrink(String? name) {
+    if (name == null) return Icons.local_drink;
+    final lowerName = name.toLowerCase();
+    
+    if (lowerName.contains('water')) return Icons.water_drop;
+    if (lowerName.contains('coffee')) return Icons.coffee;
+    if (lowerName.contains('tea')) return Icons.emoji_food_beverage;
+    if (lowerName.contains('energy') || lowerName.contains('red bull')) return Icons.bolt;
+    if (lowerName.contains('cola') || lowerName.contains('soda')) return Icons.local_drink;
+    
+    return Icons.local_drink;
   }
 
-  void doNothing(){}
-
-  Future<void> testReset() async {
-    setState(() {
-      isLoading = true;
-      statusMessage = 'Resetting...';
-    });
-
+  /// Formats ISO timestamp to readable time (HH:MM)
+  String _formatTime(String? timestamp) {
+    if (timestamp == null) return '--:--';
     try {
-      setState(() {
-        currhydra = 0;
-        currcaff = 0;
-        statusMessage = 'Reset';
-        isLoading = false;
-        log = [];
-      });
+      final dt = DateTime.parse(timestamp);
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
     } catch (e) {
-      setState(() {
-        statusMessage = 'Error: $e';
-        isLoading = false;
-      });
-    }
-  }
-
-  // Test: Add coffee
-  Future<void> testAddCoffee() async {
-    setState(() {
-      isLoading = true;
-      statusMessage = 'Adding coffee...';
-    });
-
-    try {
-      setState(() {
-        currhydra += coffhydra;
-        currcaff += coffcaff;
-        statusMessage = 'Added 200ml of coffee';
-        isLoading = false;
-        log.add(DrinkLog(beverageId: 2, volumeOz: 200, timestamp: DateTime.now(), actualHydrationOz: 190));
-      });
-    } catch (e) {
-      setState(() {
-        statusMessage = 'Error: $e';
-        isLoading = false;
-      });
+      return '--:--';
     }
   }
 }
