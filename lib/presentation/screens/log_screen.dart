@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/providers/hydration_provider.dart';
+import '../widgets/app_card.dart';
 
 /// LogScreen - Shows today's drink history
 /// 
@@ -39,9 +40,9 @@ class LogScreen extends StatelessWidget {
         children: [
           // ==================== SUMMARY CARD ====================
           // Shows same totals as HomeScreen (from Provider)
-          Container(
+          Padding(
             padding: const EdgeInsets.all(16),
-            color: Colors.blue[50],
+            child: AppCard(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -82,6 +83,7 @@ class LogScreen extends StatelessWidget {
               ],
             ),
           ),
+        ),
 
           // ==================== DRINK LOG LIST ====================
           // Shows all drinks added from HomeScreen
@@ -114,11 +116,12 @@ class LogScreen extends StatelessWidget {
                       final reversedIndex = logs.length - 1 - index;
                       final log = logs[reversedIndex];
                       
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
+                        child: AppCard(
                         child: ListTile(
                           // Drink icon
                           leading: Column(
@@ -153,6 +156,7 @@ class LogScreen extends StatelessWidget {
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             onPressed: () => _confirmDelete(context, provider, reversedIndex, log),
                           ),
+                        ),
                         ),
                       );
                     },
