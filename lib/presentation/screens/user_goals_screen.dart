@@ -1,75 +1,158 @@
 import 'package:flutter/material.dart';
+import '../../data/dao/drink_logs_dao.dart';
 
-class UserGoalsScreen extends StatelessWidget {
+/// Screen that shows user goals / badges based on real drink logs.
+class UserGoalsScreen extends StatefulWidget {
   const UserGoalsScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // Simple dummy data goals.
-    final goals = <_GoalCardData>[
-      _GoalCardData(
-        title: 'First Sip',
-        statusLabel: 'Earned',
-        statusColor: Colors.green,
-        description: 'Earned on Jan 5, 2023',
-        progressText: null,
-        isLocked: false,
-      ),
-      _GoalCardData(
-        title: 'Daily Drinker',
-        statusLabel: 'In Progress',
-        statusColor: Colors.blue,
-        description: '7 / 10 Days',
-        progressText: '7/10 Days',
-        progressValue: 0.7,
-        isLocked: false,
-      ),
-      _GoalCardData(
-        title: 'Hydration Hero',
-        statusLabel: 'Earned',
-        statusColor: Colors.green,
-        description: 'Earned on Mar 12, 2023',
-        progressText: null,
-        isLocked: false,
-      ),
-      _GoalCardData(
-        title: 'Streak Master',
-        statusLabel: 'Locked',
-        statusColor: Colors.grey,
-        description: 'Stay hydrated 30 days in a row',
-        progressText: '25/50 Days',
-        progressValue: 0.5,
-        isLocked: true,
-      ),
-    ];
+  State<UserGoalsScreen> createState() => _UserGoalsScreenState();
+}
 
+class _UserGoalsScreenState extends State<UserGoalsScreen> {
+  // Data access object for drink logs
+  final DrinkLogDao _drinkLogDao = DrinkLogDao();
+
+  late Future<_GoalsData> _goalsFuture;
+
+  // For now, fixed daily goal. Later you can load this from UserSettings.
+  static const double _dailyGoalOz = 64.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _goalsFuture = _loadGoals();
+  }
+
+  Future<_GoalsData> _loadGoals() async {
+    final today = DateTime.now();
+
+    final totalToday = await _drinkLogDao.getTotalHydrationOzForDay(today);
+    final streak = await _drinkLogDao.getStreakCount(_dailyGoalOz);
+
+    final percentToday =
+        (totalToday / _dailyGoalOz).clamp(0.0, 1.0) as double;
+
+    return _GoalsData(
+      totalTodayOz: totalToday,
+      goalOz: _dailyGoalOz,
+      todayPercent: percentToday,
+      streakDays: streak,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Goals & Badges'),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.8,
-            ),
-            itemCount: goals.length,
-            itemBuilder: (context, index) {
-              final goal = goals[index];
-              return _GoalCard(goal: goal);
-            },
-          ),
+        child: FutureBuilder<_GoalsData>(
+          future: _goalsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Error loading goals: ${snapshot.error}'),
+              );
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: Text('No goal data yet.'));
+            }
+
+            final data = snapshot.data!;
+
+            // Build cards using REAL progress now
+            final goals = <_GoalCardData>[
+              _GoalCardData(
+                title: 'First Sip',
+                statusLabel:
+                    data.totalTodayOz > 0 ? 'Earned' : 'Locked',
+                statusColor:
+                    data.totalTodayOz > 0 ? Colors.green : Colors.grey,
+                description: 'Log at least one drink.',
+                progressText: null,
+                progressValue: null,
+                isLocked: data.totalTodayOz == 0,
+              ),
+              _GoalCardData(
+                title: 'Daily Drinker',
+                statusLabel:
+                    data.todayPercent >= 1.0 ? 'Earned' : 'In Progress',
+                statusColor:
+                    data.todayPercent >= 1.0 ? Colors.green : Colors.blue,
+                description: 'Hit your daily hydration goal.',
+                progressText:
+                    '${data.totalTodayOz.toStringAsFixed(0)}/${data.goalOz.toStringAsFixed(0)} oz',
+                progressValue: data.todayPercent,
+                isLocked: false,
+              ),
+              _GoalCardData(
+                title: 'Streak Master',
+                statusLabel: data.streakDays >= 7 ? 'Earned' : 'In Progress',
+                statusColor:
+                    data.streakDays >= 7 ? Colors.green : Colors.blue,
+                description: 'Stay hydrated for 7 days in a row.',
+                progressText: '${data.streakDays}/7 Days',
+                progressValue:
+                    (data.streakDays / 7).clamp(0.0, 1.0) as double,
+                isLocked: data.streakDays < 7,
+              ),
+              _GoalCardData(
+                title: 'Hydration Hero',
+                statusLabel: data.streakDays >= 30 ? 'Earned' : 'Locked',
+                statusColor:
+                    data.streakDays >= 30 ? Colors.green : Colors.grey,
+                description: 'Stay hydrated for 30 days in a row.',
+                progressText: '${data.streakDays}/30 Days',
+                progressValue:
+                    (data.streakDays / 30).clamp(0.0, 1.0) as double,
+                isLocked: data.streakDays < 30,
+              ),
+            ];
+
+            return Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: GridView.builder(
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // two cards per row
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: goals.length,
+                itemBuilder: (context, index) {
+                  final goal = goals[index];
+                  return _GoalCard(goal: goal);
+                },
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-// ----- Helper classes/widgets just for this screen
+// ===== Helper classes/data for this screen only =====
+
+class _GoalsData {
+  final double totalTodayOz;
+  final double goalOz;
+  final double todayPercent; // 0–1
+  final int streakDays;
+
+  _GoalsData({
+    required this.totalTodayOz,
+    required this.goalOz,
+    required this.todayPercent,
+    required this.streakDays,
+  });
+}
 
 class _GoalCardData {
   final String title;
@@ -77,7 +160,7 @@ class _GoalCardData {
   final Color statusColor;
   final String description;
   final String? progressText;
-  final double? progressValue;
+  final double? progressValue; // 0.0–1.0
   final bool isLocked;
 
   _GoalCardData({
@@ -112,8 +195,9 @@ class _GoalCard extends StatelessWidget {
             Center(
               child: CircleAvatar(
                 radius: 22,
-                backgroundColor:
-                    goal.isLocked ? Colors.grey.shade300 : Colors.blue.shade100,
+                backgroundColor: goal.isLocked
+                    ? Colors.grey.shade300
+                    : Colors.blue.shade100,
                 child: Icon(
                   goal.isLocked ? Icons.lock : Icons.water_drop,
                   color: goal.isLocked ? Colors.grey : Colors.blue,
@@ -169,7 +253,7 @@ class _GoalCard extends StatelessWidget {
             // Optional progress bar
             if (goal.progressValue != null) ...[
               LinearProgressIndicator(
-                value: goal.progressValue,
+                value: goal.progressValue!.clamp(0.0, 1.0),
                 minHeight: 4,
               ),
               const SizedBox(height: 4),
