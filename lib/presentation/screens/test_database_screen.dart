@@ -85,20 +85,6 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-<<<<<<< HEAD
-        title: Text('Database Test'),
-        backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.view_headline), // trophy icon
-            tooltip: 'Log',
-            onPressed: () {
-              Navigator.pushNamed(context, '/log');
-            },
-          ),
-  ],
-
-=======
   title: const Text('Database Test'),
   backgroundColor: Colors.blue,
   actions: [
@@ -117,7 +103,6 @@ class _TestDatabaseScreenState extends State<TestDatabaseScreen> {
       },
     ),
   ],
->>>>>>> origin/wilkersettings
       ),
       
       body: SafeArea(
