@@ -125,8 +125,8 @@ class LogScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                _getIconForDrink(log['beverageName'] as String?),
-                                color: Colors.blue,
+                                _getIconForDrink(log['beverageName'] as String?, log['caffeineMg'] as double?),
+                                color: _getColorForDrink(log['beverageName'] as String?, log['caffeineMg'] as double?),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -196,17 +196,30 @@ class LogScreen extends StatelessWidget {
   }
 
   /// Returns appropriate icon based on drink name
-  IconData _getIconForDrink(String? name) {
-    if (name == null) return Icons.local_drink;
+  IconData _getIconForDrink(String? name, double? caff) {
+    if (name == null || caff == null) return Icons.local_drink;
     final lowerName = name.toLowerCase();
     
     if (lowerName.contains('water')) return Icons.water_drop;
-    if (lowerName.contains('coffee')) return Icons.coffee;
-    if (lowerName.contains('tea')) return Icons.emoji_food_beverage;
-    if (lowerName.contains('energy') || lowerName.contains('red bull')) return Icons.bolt;
+    if (lowerName.contains('coffee') || lowerName.contains('mocha') || lowerName.contains('latte') || lowerName.contains('cold brew') || lowerName.contains('cappuccino')) return Icons.coffee;
+    if (lowerName.contains('tea') || lowerName.contains('chai')) return Icons.emoji_food_beverage;
+    if (lowerName.contains('energy') || lowerName.contains('red bull') || caff > 70) return Icons.bolt;
     if (lowerName.contains('cola') || lowerName.contains('soda')) return Icons.local_drink;
     
     return Icons.local_drink;
+  }
+
+  Color _getColorForDrink(String? name, double? caff) {
+    if (name == null || caff == null) return Colors.grey;
+    final lowerName = name.toLowerCase();
+    
+    if (lowerName.contains('water')) return Colors.blue;
+    if (lowerName.contains('coffee') || lowerName.contains('mocha') || lowerName.contains('latte') || lowerName.contains('cold brew') || lowerName.contains('cappuccino')) return Colors.black;
+    if (lowerName.contains('tea') || lowerName.contains('chai')) return Colors.green;
+    if (lowerName.contains('energy') || lowerName.contains('red bull') || caff > 70) return Colors.orange;
+    if (lowerName.contains('cola') || lowerName.contains('soda')) return Colors.red;
+    
+    return Colors.grey;
   }
 
   /// Formats ISO timestamp to readable time (HH:MM)
