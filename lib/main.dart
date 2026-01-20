@@ -7,6 +7,7 @@ import 'presentation/screens/drink_library_screen.dart';
 import 'presentation/screens/user_goals_screen.dart';
 import 'presentation/screens/user_settings_screen.dart';
 import 'application/providers/hydration_provider.dart';
+import 'presentation/screens/weekly_stats_screen.dart';
 
 void main() {
   runApp(
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/log': (context) => const LogScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/goals': (context) => const UserGoalsScreen(),
+        '/weekly-stats': (context) => const WeeklyStatsScreen(),
       },
     );
   }

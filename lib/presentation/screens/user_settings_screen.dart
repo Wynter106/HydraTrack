@@ -256,9 +256,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 24),
               const Text(
+                'Analytics',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              ListTile(
+                leading: const Icon(Icons.bar_chart),
+                title: const Text('Weekly Stats'),
+                subtitle: const Text('View this week’s hydration & caffeine'),
+                onTap: () => Navigator.pushNamed(context, '/weekly-stats'),
+              ),
+
+              const SizedBox(height: 24),
+              const Text(
                 'Notifications',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
+              
               SwitchListTile(
                 title: const Text('Remind me to drink water'),
                 value: _notificationsEnabled,
