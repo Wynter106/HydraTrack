@@ -39,7 +39,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        // 기본적으로 primary 색 버튼
+        // 기본적으로 primary 색 버튼. 수정할거
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
       ),
