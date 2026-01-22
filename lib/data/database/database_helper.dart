@@ -70,6 +70,7 @@ class DatabaseHelper {
             BeverageColumns.caffeinePerOz: beverage['caffeine_per_oz'],
             BeverageColumns.hydrationFactor: beverage['hydration_factor'],
             BeverageColumns.defaultVolumeOz: beverage['default_volume_oz'],
+            BeverageColumns.fav: beverage['favorite'],
           },
         );
       }

@@ -5,13 +5,23 @@ import '../models/beverage.dart';
 
 class BeverageDao {
   // Get all beverages from database
-  // Returns: List of all beverages sorted alphabetically
+  // Returns: List of all beverages sorted alphabetically after sorting favorites
   Future<List<Beverage>> getAllBeverages() async {
     final db = await DatabaseHelper.instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
+    final List<Map<String, dynamic>> favs = await db.query(
       TableNames.beverages,
+      where: '${BeverageColumns.fav}',
+      whereArgs: [true],
       orderBy: '${BeverageColumns.name} ASC',
     );
+    final List<Map<String, dynamic>> notfavs = await db.query(
+      TableNames.beverages,
+      where: '${BeverageColumns.fav} ',
+      whereArgs: [false],
+      orderBy: '${BeverageColumns.name} ASC',
+    );
+    final List<Map<String, dynamic>> maps = favs;
+    maps.addAll(notfavs);
 
     return List.generate(maps.length, (i) => Beverage.fromMap(maps[i]));
   }

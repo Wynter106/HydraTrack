@@ -143,6 +143,10 @@ void _onSearchChanged(String value) {
                           'Caffeine: ${totalCaffeine.toStringAsFixed(0)} mg  |  '
                           'Hydration: ${beverage.hydrationFactor.toStringAsFixed(2)}x',
                         ),
+                        leading: IconButton(
+                          icon: Icon(Icons.delete_outline, color: beverage.fav ? Colors.yellow : Colors.white),
+                            onPressed: () => beverage.fav = !beverage.fav,
+                        ),
                         isThreeLine: true,
                         onTap: () {
                           // Delete this comment later

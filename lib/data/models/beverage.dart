@@ -9,6 +9,7 @@ class Beverage {
   final double caffeinePerOz;   // Caffeine content per oz (mg)
   final double hydrationFactor; // Hydration factor (0.0 to 1.0)
   final int defaultVolumeOz;    // Default volume in ounces (oz)
+  bool fav;
 
   Beverage({
     this.id,
@@ -16,6 +17,7 @@ class Beverage {
     required this.caffeinePerOz,
     required this.hydrationFactor,
     required this.defaultVolumeOz,
+    required this.fav,
   });
 
   /// Converts a Map (from the DB) into a Beverage object.
@@ -27,6 +29,7 @@ class Beverage {
       caffeinePerOz: map['caffeine_per_oz'] as double,
       hydrationFactor: map['hydration_factor'] as double,
       defaultVolumeOz: map['default_volume_oz'] as int,
+      fav: map['favorite'] as bool,
     );
   }
 
@@ -38,6 +41,7 @@ class Beverage {
       'caffeine_per_oz': caffeinePerOz,
       'hydration_factor': hydrationFactor,
       'default_volume_oz': defaultVolumeOz,
+      'favorite': fav,
     };
   }
 }
