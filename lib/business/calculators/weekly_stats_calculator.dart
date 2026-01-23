@@ -1,8 +1,12 @@
+/// Helper: normalize a DateTime to date-only (00:00:00)
+/// We do this so that all logs on the same calendar day map to the same key.
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// Per-day aggregated stats (used for the daily breakdown UI)
 class DayStats {
   final DateTime day;
   final double hydrationOz;
+  /// Total caffeine (mg) for this day
   final double caffeineMg;
 
   const DayStats({
@@ -12,6 +16,8 @@ class DayStats {
   });
 }
 
+/// Weekly summary stats returned by the calculator.
+/// This is what the WeeklyStatsScreen displays.
 class WeeklyStats {
   final DateTime start; // Monday
   final DateTime end;   // Sunday
@@ -42,7 +48,12 @@ class WeeklyStats {
   });
 }
 
+/// WeeklyStatsCalculator
+/// - Defines the current week range (Mon..Sun)
+/// - Aggregates logs by day
+/// - Computes totals, averages, and goal achievement metrics
 class WeeklyStatsCalculator {
+  /// Example- If today is Wednesday, start becomes Monday of this week, end becomes Sunday.
   static (DateTime start, DateTime end) currentWeekRange(DateTime now) {
     final today = _day(now);
     final start = today.subtract(Duration(days: today.weekday - 1)); // Mon
@@ -62,6 +73,7 @@ class WeeklyStatsCalculator {
     // day -> (hydration, caffeine)
     final Map<DateTime, (double hyd, double caf)> sums = {};
 
+    // Aggregate all logs into day buckets
     for (final log in logs) {
       final ts = log['timestamp'] as String?;
       final dt = ts == null ? null : DateTime.tryParse(ts);
@@ -70,6 +82,7 @@ class WeeklyStatsCalculator {
       final d = _day(dt);
       if (d.isBefore(s) || d.isAfter(e)) continue;
 
+      // Use num->double to be safe if values come from DB/JSON later
       final hyd = (log['actualHydrationOz'] as num?)?.toDouble() ?? 0.0;
       final caf = (log['caffeineMg'] as num?)?.toDouble() ?? 0.0;
 
@@ -77,6 +90,7 @@ class WeeklyStatsCalculator {
       sums[d] = (prev.$1 + hyd, prev.$2 + caf);
     }
 
+    // Build the daily breakdown for every day in the week (Mon..Sun)
     final List<DayStats> daily = [];
     int goalMetDays = 0;
 
@@ -97,6 +111,7 @@ class WeeklyStatsCalculator {
 
     final rate = totalDays == 0 ? 0.0 : goalMetDays / totalDays;
 
+    // Return final stats object for UI
     return WeeklyStats(
       start: s,
       end: e,
