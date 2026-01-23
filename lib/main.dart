@@ -7,8 +7,17 @@ import 'presentation/screens/drink_library_screen.dart';
 import 'presentation/screens/user_goals_screen.dart';
 import 'presentation/screens/user_settings_screen.dart';
 import 'application/providers/hydration_provider.dart';
+import 'presentation/screens/login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://gzpqnwhfkemioshwycul.supabase.co',
+    anonKey: 'sb_publishable_7-U1uPbBIu6d_UBe6JR37A_qZuigKj6'
+  );
+
   runApp(
     /// Wrap the entire app with Provider
     /// This makes HydrationProvider available to all screens
@@ -28,8 +37,9 @@ class MyApp extends StatelessWidget {
       title: 'HydraTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const HomeScreen(),
+      home: const LoginScreen(),
       routes: {
+        '/home': (context) => const HomeScreen(),
         '/library': (context) => const DrinkLibraryScreen(),
         '/log': (context) => const LogScreen(),
         '/settings': (context) => const SettingsScreen(),
