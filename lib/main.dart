@@ -9,11 +9,17 @@ import 'presentation/screens/user_settings_screen.dart';
 import 'application/providers/hydration_provider.dart';
 import 'presentation/screens/weekly_stats_screen.dart';
 import 'presentation/screens/monthly_stats_screen.dart';
+import 'business/managers/notification_manager.dart';
 
-void main() {
+Future<void> main() async {
+  // Flutter가 네이티브 플러그인(알림 등) 초기화할 수 있게 준비
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 알림 플러그인 초기화 + (Android 13+) 권한 요청
+  await NotificationManager.instance.init();
+  await NotificationManager.instance.requestPermissionIfNeeded();
+
   runApp(
-    /// Wrap the entire app with Provider
-    /// This makes HydrationProvider available to all screens
     ChangeNotifierProvider(
       create: (context) => HydrationProvider(),
       child: const MyApp(),
