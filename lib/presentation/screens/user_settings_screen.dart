@@ -266,6 +266,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => Navigator.pushNamed(context, '/weekly-stats'),
               ),
 
+              ListTile(
+                leading: const Icon(Icons.calendar_month),
+                title: const Text('Monthly Stats'),
+                subtitle: const Text('View this month’s hydration & caffeine'),
+                onTap: () => Navigator.pushNamed(context, '/monthly-stats'),
+              ),
+
               const SizedBox(height: 24),
               const Text(
                 'Notifications',
