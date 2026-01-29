@@ -284,69 +284,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text('Remind me to drink water'),
                   value: _notificationsEnabled,
 
-
-
-
-
-
-
-//test test test test
-
-
-
-
-
-            //       onChanged: (val) async {
-            //   setState(() {
-            //     _notificationsEnabled = val;
-            //   });
-
-            //   if (val) {
-            //     // 토글 ON → 테스트 알림 1회 띄워서 동작 확인
-            //     await NotificationManager.instance.showTestNotification();
-
-            //     // (다음 단계) 여기서 "스케줄 알림"을 걸 수 있음
-            //     // await NotificationManager.instance.scheduleDailyReminders(...);
-            //   } else {
-            //     // 토글 OFF → 테스트 알림 취소(또는 전체 취소)
-            //     await NotificationManager.instance.cancelAll();
-            //     // 또는 개발 중엔 전체 취소가 편함:
-            //     // await NotificationManager.instance.cancelAll();
-            //   }
-            // },
-
-//이게 원본 이걸 사용할거임
-// onChanged: (val) async {
-//   setState(() => _notificationsEnabled = val);
-
-//   if (val) {
-//     // 1) 즉시 알림으로 동작 확인
-//     await NotificationManager.instance.showTestNotification();
-
-//     // 2) 테스트용: 지금 시간 기준 1~3분 뒤 알림 걸기
-//     final now = TimeOfDay.now();
-//     await NotificationManager.instance.scheduleDailyHydrationReminders(
-//       times: [
-//         TimeOfDay(hour: now.hour, minute: (now.minute + 1) % 60),
-//         TimeOfDay(hour: now.hour, minute: (now.minute + 2) % 60),
-//         TimeOfDay(hour: now.hour, minute: (now.minute + 3) % 60),
-//       ],
-//     );
-//   } else {
-//     // OFF면 스케줄 취소
-//     await NotificationManager.instance.cancelHydrationDailyReminders();
-//   }
-// },
-
-
 onChanged: (val) async {
   setState(() => _notificationsEnabled = val);
 
   if (val) {
     await NotificationManager.instance.showTestNotification(); // 즉시 알림
-    await NotificationManager.instance.scheduleOneShotTestInSeconds(10); // 10초 뒤 스케줄
+    await NotificationManager.instance.scheduleOneShotTestInSeconds(15); // 15초 뒤 스케줄 : 참고로 여기 15초는 제대로 동작용 보여주기 위한것이니 다음주에 고치자
   } else {
-    await NotificationManager.instance.cancelAll(); // 테스트용으론 전체 취소가 편함
+    await NotificationManager.instance.cancelAll();
   }
 },
 
