@@ -7,6 +7,7 @@ import 'presentation/screens/drink_library_screen.dart';
 import 'presentation/screens/user_goals_screen.dart';
 import 'presentation/screens/user_settings_screen.dart';
 import 'application/providers/hydration_provider.dart';
+import 'application/providers/auth_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,13 +20,14 @@ void main() async {
   );
 
   runApp(
-    /// Wrap the entire app with Provider
-    /// This makes HydrationProvider available to all screens
-    ChangeNotifierProvider(
-      create: (context) => HydrationProvider(),
-      child: const MyApp(),
-    ),
-  );
+  MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => HydrationProvider()),
+      ChangeNotifierProvider(create: (_) => AuthProvider()),  
+    ],
+    child: const MyApp(),
+  ),
+);
 }
 
 class MyApp extends StatelessWidget {
