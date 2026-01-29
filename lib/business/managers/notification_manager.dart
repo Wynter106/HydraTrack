@@ -88,18 +88,15 @@ class NotificationManager {
 
 
 
-    /// 매일 3번(기본: 10:00 / 14:00 / 18:00) 물 마시기 알림 스케줄
 Future<void> scheduleDailyHydrationReminders({
   List<TimeOfDay>? times,
 }) async {
-  // 기본값 세팅 (const list literal 문제 회피)
-  times ??=  [
-    TimeOfDay(hour: 10, minute: 0),
-    TimeOfDay(hour: 14, minute: 0),
-    TimeOfDay(hour: 18, minute: 0),
+  times ??= [
+    const TimeOfDay(hour: 10, minute: 0),
+    const TimeOfDay(hour: 13, minute: 0),
+    const TimeOfDay(hour: 19, minute: 0),
   ];
 
-  // 채널(안드로이드)
   const androidDetails = AndroidNotificationDetails(
     'hydration_channel',
     'Hydration Reminders',
@@ -109,15 +106,13 @@ Future<void> scheduleDailyHydrationReminders({
   );
   const details = NotificationDetails(android: androidDetails);
 
-  // 기존 알림 먼저 정리(중복 방지)
-  await cancelHydrationDailyReminders();
+  await cancelHydrationDailyReminders(count: times.length);
 
   final now = tz.TZDateTime.now(tz.local);
 
   for (int i = 0; i < times.length; i++) {
     final t = times[i];
 
-    // 오늘 t시에 해당하는 시간
     var scheduled = tz.TZDateTime(
       tz.local,
       now.year,
@@ -127,12 +122,10 @@ Future<void> scheduleDailyHydrationReminders({
       t.minute,
     );
 
-    // 이미 시간이 지났으면 내일로
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    // id를 각각 다르게(1001,1002,1003)
     final id = hydrationReminderId + i;
 
     await _plugin.zonedSchedule(
@@ -141,11 +134,17 @@ Future<void> scheduleDailyHydrationReminders({
       'Time to drink water 💧',
       scheduled,
       details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // 매일 같은 시간 반복
+      matchDateTimeComponents: DateTimeComponents.time,
     );
+  }
+}
+
+Future<void> cancelHydrationDailyReminders({int count = 3}) async {
+  for (int i = 0; i < count; i++) {
+    await _plugin.cancel(hydrationReminderId + i);
   }
 }
 
@@ -174,14 +173,5 @@ Future<void> scheduleOneShotTestInSeconds(int seconds) async {
         UILocalNotificationDateInterpretation.absoluteTime,
   );
 }
-
-
-  /// 매일 3번 알림 취소 (1001~1003)
-  Future<void> cancelHydrationDailyReminders() async {
-    for (int i = 0; i < 3; i++) {
-      await _plugin.cancel(hydrationReminderId + i);
-    }
-  }
-
 
 }
