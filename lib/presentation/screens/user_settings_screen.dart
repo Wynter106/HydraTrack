@@ -284,19 +284,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text('Remind me to drink water'),
                   value: _notificationsEnabled,
 
+// onChanged: (val) async {
+//   setState(() => _notificationsEnabled = val);
+
+//   if (val) {
+//     await NotificationManager.instance.showTestNotification(); // 즉시 알림
+//     await NotificationManager.instance.scheduleOneShotTestInSeconds(15); // 15초 뒤 스케줄 : 참고로 여기 15초는 제대로 동작용 보여주기 위한것이니 다음주에 고치자
+//   } else {
+//     await NotificationManager.instance.cancelAll();
+//   }
+// },
+
+
 onChanged: (val) async {
   setState(() => _notificationsEnabled = val);
 
   if (val) {
     await NotificationManager.instance.showTestNotification(); // 즉시 알림
-    await NotificationManager.instance.scheduleOneShotTestInSeconds(15); // 15초 뒤 스케줄 : 참고로 여기 15초는 제대로 동작용 보여주기 위한것이니 다음주에 고치자
+    await NotificationManager.instance.scheduleDailyHydrationReminders();
+    await NotificationManager.instance.scheduleTestRemindersNext1to3Minutes(); // +1~+3분 3개
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Scheduled test reminders for +1/+2/+3 minutes')),
+    );
   } else {
     await NotificationManager.instance.cancelAll();
   }
 },
-
-
-
 
 
 

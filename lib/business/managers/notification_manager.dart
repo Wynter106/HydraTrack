@@ -173,5 +173,20 @@ Future<void> scheduleOneShotTestInSeconds(int seconds) async {
         UILocalNotificationDateInterpretation.absoluteTime,
   );
 }
+Future<void> scheduleTestRemindersNext1to3Minutes() async {
+  final now = DateTime.now();
+
+  int addMinutes(int m) => (now.minute + m) % 60;
+  int addHoursIfNeeded(int m) =>
+      (now.minute + m >= 60) ? ((now.hour + 1) % 24) : now.hour;
+
+  await scheduleDailyHydrationReminders(
+    times: [
+      TimeOfDay(hour: addHoursIfNeeded(1), minute: addMinutes(1)),
+      TimeOfDay(hour: addHoursIfNeeded(2), minute: addMinutes(2)),
+      TimeOfDay(hour: addHoursIfNeeded(3), minute: addMinutes(3)),
+    ],
+  );
+}
 
 }
