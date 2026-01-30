@@ -104,7 +104,15 @@ int get uniqueDrinkTypesToday {
   
   /// Number of drinks logged today
   int get logCount => _todayLogs.length;
+
+
+  /// List of all drinks logged (for weekly/monthly stats)
+  final List<Map<String, dynamic>> _allLogs = [];
+
+  /// Returns a copy of all logs
+  List<Map<String, dynamic>> get allLogs => List.unmodifiable(_allLogs);
   
+
   // ==================== PROGRESS GETTERS ====================
   
   /// Hydration progress as percentage (0.0 to 1.0)
@@ -182,6 +190,9 @@ int get uniqueDrinkTypesToday {
     // Add to log list
     _todayLogs.add(logEntry);
     
+    // Add to all logs (for weekly/monthly stats)
+    _allLogs.add(logEntry);
+
     // Notify all screens to rebuild with new data
     notifyListeners();
     
@@ -213,6 +224,12 @@ int get uniqueDrinkTypesToday {
     if (_hydrationCurrent < 0) _hydrationCurrent = 0;
     if (_caffeineCurrent < 0) _caffeineCurrent = 0;
     
+    // Also remove allLogs
+    final ts = log['timestamp'] as String?;
+    if (ts != null) {
+      _allLogs.removeWhere((x) => x['timestamp'] == ts);
+    }
+
     // Remove from list
     _todayLogs.removeAt(index);
     
@@ -268,4 +285,20 @@ int get uniqueDrinkTypesToday {
       notifyListeners();
     }
   }
+
+  /// Returns logs between start and end dates (inclusive)
+  /// Used for weekly/monthly stats
+  List<Map<String, dynamic>> getLogsBetween(DateTime start, DateTime end) {
+    final s = DateTime(start.year, start.month, start.day);
+    final e = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
+
+    return _allLogs.where((log) {
+      final ts = log['timestamp'] as String?;
+      final dt = ts == null ? null : DateTime.tryParse(ts);
+      if (dt == null) return false;
+      return !dt.isBefore(s) && !dt.isAfter(e);
+    }).toList();
+  }
+
+
 }
