@@ -41,6 +41,57 @@ class HydrationProvider extends ChangeNotifier {
   /// TODO: Load from UserSettings database
   double _caffeineLimit = 400;
   double get caffeineLimit => _caffeineLimit;
+
+  // ==================== STREAK TRACKING ====================
+
+/// Current consecutive days meeting hydration goal
+int _currentStreak = 0;
+int get currentStreak => _currentStreak;
+
+/// Longest streak ever achieved
+int _longestStreak = 0;
+int get longestStreak => _longestStreak;
+
+// ==================== LIFETIME STATS ====================
+
+/// Total ounces logged across all time
+double _lifetimeOunces = 0;
+double get lifetimeOunces => _lifetimeOunces;
+
+/// Total number of drinks logged all time
+int _lifetimeDrinkCount = 0;
+int get lifetimeDrinkCount => _lifetimeDrinkCount;
+
+// ==================== TIME-BASED GOAL GETTERS ====================
+
+/// True if user logged a drink before 8 AM today
+bool get hasEarlyLog {
+  for (final log in _todayLogs) {
+    final timestamp = DateTime.parse(log['timestamp'] as String);
+    if (timestamp.hour < 8) return true;
+  }
+  return false;
+}
+
+/// True if user logged a drink after 9 PM today
+bool get hasLateLog {
+  for (final log in _todayLogs) {
+    final timestamp = DateTime.parse(log['timestamp'] as String);
+    if (timestamp.hour >= 21) return true;
+  }
+  return false;
+}
+
+// ==================== VARIETY TRACKING ====================
+
+/// Number of unique drink types logged today
+int get uniqueDrinkTypesToday {
+  final uniqueNames = <String>{};
+  for (final log in _todayLogs) {
+    uniqueNames.add(log['beverageName'] as String);
+  }
+  return uniqueNames.length;
+}
   
   // ==================== DRINK LOGS ====================
   
@@ -124,6 +175,9 @@ class HydrationProvider extends ChangeNotifier {
     // Update totals
     _hydrationCurrent += actualHydration;
     _caffeineCurrent += caffeine;
+    // Update lifetime stats
+    _lifetimeOunces += actualHydration;
+    _lifetimeDrinkCount++;
     
     // Add to log list
     _todayLogs.add(logEntry);
@@ -173,10 +227,20 @@ class HydrationProvider extends ChangeNotifier {
   /// - When user manually resets
   /// - For testing purposes
   void resetDay() {
-    _hydrationCurrent = 0;
-    _caffeineCurrent = 0;
-    _todayLogs.clear();
-    notifyListeners();
+    // Check if yesterday met the goal before resetting
+  if (_hydrationCurrent >= _hydrationGoal) {
+    _currentStreak++;
+    if (_currentStreak > _longestStreak) {
+      _longestStreak = _currentStreak;
+    }
+  } else {
+    _currentStreak = 0; // Streak broken
+  }
+  
+  _hydrationCurrent = 0;
+  _caffeineCurrent = 0;
+  _todayLogs.clear();
+  notifyListeners();
   }
   
   /// Updates the daily hydration goal
