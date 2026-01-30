@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import '../../application/providers/profile_provider.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   final bool isFirstTime;
@@ -20,6 +22,7 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _heightInController = TextEditingController(text: '7');
   final _weightController = TextEditingController(text: '154');
   final _goalController = TextEditingController();
+  final _caffeineLimitController = TextEditingController(text: '400');
   
   String _volumeUnit = 'oz';
   String _weightUnit = 'lb';
@@ -34,9 +37,16 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
       _loadExistingProfile();
     } else {
       _calculateGoal();
+      _calculateCaffeineLimit();
     }
     
     _weightController.addListener(_calculateGoal);
+    _goalController.addListener(() => setState(() {}));
+    _caffeineLimitController.addListener(() => setState(() {}));
+    _birthdateController.addListener(() {
+      setState(() {});
+      _calculateCaffeineLimit();
+    });
   }
 
   @override
@@ -46,6 +56,7 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _heightInController.dispose();
     _weightController.dispose();
     _goalController.dispose();
+    _caffeineLimitController.dispose();
     super.dispose();
   }
 
@@ -73,6 +84,7 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
         }
         
         _goalController.text = profile['daily_hydration_goal_oz'].toString();
+        _caffeineLimitController.text = profile['daily_caffeine_limit_mg'].toString();
         _volumeUnit = profile['preferred_volume_unit'] ?? 'oz';
         _weightUnit = profile['preferred_weight_unit'] ?? 'lb';
         _heightUnit = profile['preferred_height_unit'] ?? 'ft';
@@ -117,11 +129,18 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return age;
   }
 
-  int _calculateCaffeineLimit() {
+  void _calculateCaffeineLimit() {
+    if (!_autoCalculate) return;
+    
     final age = _calculateAge();
-    if (age == null) return 400;
-    if (age < 18) return 100;
-    return 400;
+    int limit = 400;
+    if (age != null && age < 18) {
+      limit = 100;
+    }
+    
+    setState(() {
+      _caffeineLimitController.text = limit.toString();
+    });
   }
 
   Future<void> _saveProfile() async {
@@ -144,8 +163,9 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final heightIn = int.tryParse(_heightInController.text);
     final weight = double.tryParse(_weightController.text);
     final goal = int.tryParse(_goalController.text);
+    final caffeineLimit = int.tryParse(_caffeineLimitController.text);
 
-    if (heightFt == null || heightIn == null || weight == null || goal == null) {
+    if (heightFt == null || heightIn == null || weight == null || goal == null || caffeineLimit == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter valid numbers')),
       );
@@ -156,7 +176,6 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     try {
       final userId = _supabase.auth.currentUser!.id;
-      final caffeineLimit = _calculateCaffeineLimit();
       
       final weightLb = _weightUnit == 'lb' ? weight : _kgToLb(weight);
       
@@ -186,6 +205,9 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (widget.isFirstTime) {
         Navigator.pushReplacementNamed(context, '/home');
       } else {
+        if (mounted) {
+          await context.read<ProfileProvider>().loadProfile();
+        }
         Navigator.pop(context);
       }
     } catch (e) {
@@ -200,7 +222,6 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final age = _calculateAge();
-    final caffeineLimit = _calculateCaffeineLimit();
 
     return Scaffold(
       appBar: widget.isFirstTime 
@@ -290,7 +311,7 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           decoration: InputDecoration(
                             labelText: 'Weight',
                             border: OutlineInputBorder(),
-                            helperText: _autoCalculate ? 'Goal auto-updates' : null,
+                            helperText: _autoCalculate ? 'Goals auto-update' : null,
                           ),
                           keyboardType: TextInputType.number,
                         ),
@@ -322,13 +343,16 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   SizedBox(height: 24),
 
                   SwitchListTile(
-                    title: Text('Auto-calculate goal'),
-                    subtitle: Text('Based on your weight (weight × 33ml)'),
+                    title: Text('Auto-calculate goals'),
+                    subtitle: Text('Hydration based on weight (×33ml), caffeine on age'),
                     value: _autoCalculate,
                     onChanged: (value) {
                       setState(() {
                         _autoCalculate = value;
-                        if (value) _calculateGoal();
+                        if (value) {
+                          _calculateGoal();
+                          _calculateCaffeineLimit();
+                        }
                       });
                     },
                   ),
@@ -362,6 +386,21 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   ),
                   SizedBox(height: 16),
 
+                  TextField(
+                    controller: _caffeineLimitController,
+                    decoration: InputDecoration(
+                      labelText: 'Daily Caffeine Limit',
+                      border: OutlineInputBorder(),
+                      suffixText: 'mg',
+                      helperText: _autoCalculate 
+                          ? 'Auto-updates based on age' 
+                          : 'Recommended: 400mg adults, 100mg teens',
+                      enabled: !_autoCalculate,
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  SizedBox(height: 16),
+
                   Card(
                     color: Colors.blue[50],
                     child: Padding(
@@ -377,8 +416,8 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
                             ),
                           ),
                           SizedBox(height: 8),
-                          Text('💧 Hydration Goal: ${_goalController.text} $_volumeUnit/day'),
-                          Text('☕ Caffeine Limit: $caffeineLimit mg/day'),
+                          Text('💧 Hydration Goal: ${_goalController.text.isEmpty ? "?" : _goalController.text} $_volumeUnit/day'),
+                          Text('☕ Caffeine Limit: ${_caffeineLimitController.text.isEmpty ? "400" : _caffeineLimitController.text} mg/day'),
                           if (age != null && age < 21)
                             Text('🔒 Alcohol tracking disabled (under 21)'),
                         ],
