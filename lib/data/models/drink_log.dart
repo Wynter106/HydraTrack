@@ -1,42 +1,71 @@
-// Class to record a single instance of a drink consumption.
-// e.g., "At 14:30, consumed 250ml of Coffee, resulting in 187ml of hydration and 95mg of caffeine."
-// 
-// fromMap: DB -> Dart Object (Deserialization)
-// toMap: Dart Object -> DB (Serialization)
 class DrinkLog {
-  final int? id;
-  final int beverageId;       // Foreign key to beverages table
-  final double volumeOz;      // Volume consumed (in oz)
-  final DateTime timestamp;   // Time the drink was consumed
-  final double actualHydrationOz;  // Actual hydration amount (in oz)
+  final String? id;  // Supabase UUID
+  final String userId;
+  final String beverageName;
+  final String? brand;
+  final double volumeOz;
+  final double caffeineMg;
+  final double hydrationContributionOz;
+  final DateTime timestamp;
 
   DrinkLog({
     this.id,
-    required this.beverageId,
+    required this.userId,
+    required this.beverageName,
+    this.brand,
     required this.volumeOz,
+    required this.caffeineMg,
+    required this.hydrationContributionOz,
     required this.timestamp,
-    required this.actualHydrationOz,
   });
 
-  /// Converts a Map (from the DB) into a DrinkLog object.
-  factory DrinkLog.fromMap(Map<String, dynamic> map) {
+  // Supabase → Dart
+  factory DrinkLog.fromJson(Map<String, dynamic> json) {
     return DrinkLog(
-      id: map['id'] as int?,
-      beverageId: map['beverage_id'] as int,
-      volumeOz: map['volume_oz'] as double,
-      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int),
-      actualHydrationOz: map['actual_hydration_oz'] as double,
+      id: json['id'],
+      userId: json['user_id'],
+      beverageName: json['beverage_name'],
+      brand: json['brand'],
+      volumeOz: (json['amount_oz'] as num).toDouble(),
+      caffeineMg: (json['caffeine_mg'] as num).toDouble(),
+      hydrationContributionOz: (json['hydration_contribution_oz'] as num).toDouble(),
+      timestamp: DateTime.parse(json['logged_at']),
     );
   }
 
-/// Converts the DrinkLog object into a Map suitable for DB storage.
+  // Dart → Supabase
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'beverage_name': beverageName,
+      'brand': brand,
+      'amount_oz': volumeOz,
+      'caffeine_mg': caffeineMg,
+      'hydration_contribution_oz': hydrationContributionOz,
+      'logged_at': timestamp.toIso8601String(),
+    };
+  }
+
+  // Original SQLite Code 
+  // Delete later
+  factory DrinkLog.fromMap(Map<String, dynamic> map) {
+    return DrinkLog(
+      id: map['id']?.toString(),
+      userId: '',
+      beverageName: '',
+      brand: null,
+      volumeOz: map['volume_oz'] as double,
+      caffeineMg: 0,
+      hydrationContributionOz: map['actual_hydration_oz'] as double,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] as int),
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'beverage_id': beverageId,
       'volume_oz': volumeOz,
       'timestamp': timestamp.millisecondsSinceEpoch,
-      'actual_hydration_oz': actualHydrationOz,
+      'actual_hydration_oz': hydrationContributionOz,
     };
   }
 }

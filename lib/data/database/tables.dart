@@ -12,7 +12,6 @@ class BeverageColumns {
   static const String caffeinePerOz = 'caffeine_per_oz';
   static const String hydrationFactor = 'hydration_factor';
   static const String defaultVolumeOz = 'default_volume_oz';
-  static const String fav = 'favorite';
 }
 
 class DrinkLogColumns {
@@ -42,7 +41,6 @@ class TableSchemas {
       ${BeverageColumns.caffeinePerOz} REAL NOT NULL,
       ${BeverageColumns.hydrationFactor} REAL NOT NULL,
       ${BeverageColumns.defaultVolumeOz} INTEGER NOT NULL
-      ${BeverageColumns.fav} BOOLEAN NOT NULL
     )
   ''';
 

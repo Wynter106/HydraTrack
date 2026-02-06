@@ -4,6 +4,7 @@ import '../widgets/app_card.dart';
 import '../../data/dao/beverages_dao.dart';
 import '../../data/models/beverage.dart';
 import '../../application/providers/hydration_provider.dart';
+import '../../application/providers/profile_provider.dart';
 
 /// HomeScreen - Main screen showing hydration progress and quick add buttons
 /// 
@@ -26,7 +27,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _checkDatabase();  // DB 확인용 (테스트 후 삭제)
+    _checkDatabase(); 
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final profileProvider = context.read<ProfileProvider>();
+    final hydrationProvider = context.read<HydrationProvider>();
+    
+    await profileProvider.loadProfile();
+    
+    hydrationProvider.setHydrationGoal(profileProvider.dailyHydrationGoalOz.toDouble());
+    hydrationProvider.setCaffeineLimit(profileProvider.dailyCaffeineLimitMg.toDouble());
+    
+    await hydrationProvider.loadTodayLogs();
+    });
   }
 
   /// Check what's in database (for debugging)
@@ -99,19 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       // Add to Provider (listen: false because we're in a callback)
       final provider = Provider.of<HydrationProvider>(context, listen: false);
-      final result = provider.addDrink(beverage, volumeOz: volumeOz);
-      
-      // Show feedback to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Added ${beverage.name}: '
-            '+${result['hydration']!.toStringAsFixed(1)} oz hydration, '
-            '+${result['caffeine']!.toStringAsFixed(0)} mg caffeine'
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      await provider.addDrink(beverage, volumeOz: volumeOz);
       
     } catch (e) {
       debugPrint('Error adding drink: $e');
@@ -133,17 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (selectedBeverage != null && selectedBeverage is Beverage) {
       // Add to Provider
       final provider = Provider.of<HydrationProvider>(context, listen: false);
-      final result = provider.addDrink(selectedBeverage);
-      
-      // Show feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Added ${selectedBeverage.name}: '
-            '+${result['hydration']!.toStringAsFixed(1)} oz hydration'
-          ),
-        ),
-      );
+      await provider.addDrink(selectedBeverage);
     }
   }
 
@@ -151,10 +142,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Watch Provider for changes - rebuilds when data changes
     final provider = Provider.of<HydrationProvider>(context);
-    
+    final profileProvider = context.watch<ProfileProvider>();
+
+    final hydrationGoal = profileProvider.dailyHydrationGoalOz;  
+    final caffeineLimit = profileProvider.dailyCaffeineLimitMg;
+    final volumeUnit = profileProvider.preferredVolumeUnit;
+
     // Calculate progress ratios (clamped to 0-1 range)
-    final hydrationRatio = provider.hydrationProgress.clamp(0.0, 1.0);
-    final caffeineRatio = provider.caffeineProgress.clamp(0.0, 1.0);
+    final hydrationRatio = hydrationGoal > 0 
+      ? (provider.hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
+      : 0.0;
+    final caffeineRatio = caffeineLimit > 0
+      ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
+      : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -191,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${provider.hydrationCurrent.toStringAsFixed(1)} / '
-                    '${provider.hydrationGoal.toStringAsFixed(0)} oz'
+                    '$hydrationGoal $volumeUnit'
                   ),
 
                   const SizedBox(height: 16),
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${provider.caffeineCurrent.toStringAsFixed(0)} / '
-                    '${provider.caffeineLimit.toStringAsFixed(0)} mg'
+                    '$caffeineLimit mg'
                   ),
                 ],
               ),

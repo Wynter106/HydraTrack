@@ -18,6 +18,7 @@ class UserGoalsScreen extends StatelessWidget {
         provider.hydrationProgress.clamp(0.0, 1.0);
 
     final int logCount = provider.todayLogs.length;
+    final double overachieverTarget = hydrationGoal * 1.5;
 
     // Avoid divide by zero
     final double heroTarget = (hydrationGoal * 2).clamp(1.0, double.infinity);
@@ -77,7 +78,142 @@ class UserGoalsScreen extends StatelessWidget {
             (hydrationCurrent / heroTarget).clamp(0.0, 1.0),
         isLocked: hydrationCurrent < heroTarget,
       ),
+      // ===== STREAK GOALS =====
+
+// 5) Consistency King – 3-day streak
+_GoalCardData(
+  title: 'Consistency King',
+  statusLabel: provider.currentStreak >= 3 ? 'Earned' : 'In Progress',
+  statusColor: provider.currentStreak >= 3 ? Colors.green : Colors.blue,
+  description: 'Meet your daily goal 3 days in a row.',
+  progressText: '${provider.currentStreak} / 3 day streak',
+  progressValue: (provider.currentStreak / 3).clamp(0.0, 1.0),
+  isLocked: provider.currentStreak < 3,
+),
+
+// 6) Week Warrior – 7-day streak
+_GoalCardData(
+  title: 'Week Warrior',
+  statusLabel: provider.currentStreak >= 7 ? 'Earned' : 'In Progress',
+  statusColor: provider.currentStreak >= 7 ? Colors.green : Colors.purple,
+  description: 'Hit your goal every day for a full week.',
+  progressText: '${provider.currentStreak} / 7 day streak',
+  progressValue: (provider.currentStreak / 7).clamp(0.0, 1.0),
+  isLocked: provider.currentStreak < 7,
+),
+
+// 7) Monthly Master – 30-day streak
+_GoalCardData(
+  title: 'Monthly Master',
+  statusLabel: provider.currentStreak >= 30 ? 'Earned' : 'Locked',
+  statusColor: provider.currentStreak >= 30 ? Colors.green : Colors.grey,
+  description: 'Maintain a 30-day hydration streak.',
+  progressText: '${provider.currentStreak} / 30 days',
+  progressValue: (provider.currentStreak / 30).clamp(0.0, 1.0),
+  isLocked: provider.currentStreak < 30,
+),
+
+
+// ===== TIME-BASED GOALS =====
+
+// 8) Early Bird – log before 8 AM
+_GoalCardData(
+  title: 'Early Bird',
+  statusLabel: provider.hasEarlyLog ? 'Earned' : 'Locked',
+  statusColor: provider.hasEarlyLog ? Colors.green : Colors.grey,
+  description: 'Log a drink before 8:00 AM.',
+  progressText: provider.hasEarlyLog ? 'Morning hydration ✓' : 'Wake up and hydrate!',
+  progressValue: provider.hasEarlyLog ? 1.0 : 0.0,
+  isLocked: !provider.hasEarlyLog,
+),
+
+// 9) Night Owl – log after 9 PM
+_GoalCardData(
+  title: 'Night Owl',
+  statusLabel: provider.hasLateLog ? 'Earned' : 'Locked',
+  statusColor: provider.hasLateLog ? Colors.green : Colors.grey,
+  description: 'Log a drink after 9:00 PM.',
+  progressText: provider.hasLateLog ? 'Evening hydration ✓' : 'Stay hydrated tonight',
+  progressValue: provider.hasLateLog ? 1.0 : 0.0,
+  isLocked: !provider.hasLateLog,
+),
+
+
+// ===== VARIETY GOALS =====
+
+// 10) Mixer – log 3 different drink types in one day
+_GoalCardData(
+  title: 'Mixer',
+  statusLabel: provider.uniqueDrinkTypesToday >= 3 ? 'Earned' : 'In Progress',
+  statusColor: provider.uniqueDrinkTypesToday >= 3 ? Colors.green : Colors.teal,
+  description: 'Log 3 different drink types today.',
+  progressText: '${provider.uniqueDrinkTypesToday} / 3 types',
+  progressValue: (provider.uniqueDrinkTypesToday / 3).clamp(0.0, 1.0),
+  isLocked: provider.uniqueDrinkTypesToday < 3,
+),
+
+
+// ===== CUMULATIVE / LIFETIME GOALS =====
+
+// 11) Centurion – 100 oz lifetime
+_GoalCardData(
+  title: 'Centurion',
+  statusLabel: provider.lifetimeOunces >= 100 ? 'Earned' : 'In Progress',
+  statusColor: provider.lifetimeOunces >= 100 ? Colors.green : Colors.blue,
+  description: 'Log 100 oz total across all time.',
+  progressText: '${provider.lifetimeOunces.toStringAsFixed(0)} / 100 oz',
+  progressValue: (provider.lifetimeOunces / 100).clamp(0.0, 1.0),
+  isLocked: provider.lifetimeOunces < 100,
+),
+
+// 12) Gallon Club – 128 oz (1 gallon) lifetime
+_GoalCardData(
+  title: 'Gallon Club',
+  statusLabel: provider.lifetimeOunces >= 128 ? 'Earned' : 'In Progress',
+  statusColor: provider.lifetimeOunces >= 128 ? Colors.green : Colors.indigo,
+  description: 'Drink a total of 1 gallon lifetime.',
+  progressText: '${provider.lifetimeOunces.toStringAsFixed(0)} / 128 oz',
+  progressValue: (provider.lifetimeOunces / 128).clamp(0.0, 1.0),
+  isLocked: provider.lifetimeOunces < 128,
+),
+
+// 13) Ocean Explorer – 1,000 oz lifetime
+_GoalCardData(
+  title: 'Ocean Explorer',
+  statusLabel: provider.lifetimeOunces >= 1000 ? 'Earned' : 'Locked',
+  statusColor: provider.lifetimeOunces >= 1000 ? Colors.green : Colors.grey,
+  description: 'Log 1,000 oz across your journey.',
+  progressText: '${provider.lifetimeOunces.toStringAsFixed(0)} / 1,000 oz',
+  progressValue: (provider.lifetimeOunces / 1000).clamp(0.0, 1.0),
+  isLocked: provider.lifetimeOunces < 1000,
+),
+
+
+// ===== CHALLENGE GOALS =====
+
+// 14) Overachiever – exceed goal by 50%
+_GoalCardData(
+  title: 'Overachiever',
+  statusLabel: hydrationCurrent >= overachieverTarget ? 'Earned' : 'In Progress',
+  statusColor: hydrationCurrent >= overachieverTarget ? Colors.green : Colors.amber,
+  description: 'Exceed your daily goal by 50%.',
+  progressText: '${hydrationCurrent.toStringAsFixed(1)} / ${overachieverTarget.toStringAsFixed(0)} oz',
+  progressValue: (hydrationCurrent / overachieverTarget).clamp(0.0, 1.0),
+  isLocked: hydrationCurrent < overachieverTarget,
+),
+
+// 15) Perfect Ten – log exactly 10 drinks in one day
+_GoalCardData(
+  title: 'Perfect Ten',
+  statusLabel: logCount >= 10 ? 'Earned' : 'In Progress',
+  statusColor: logCount >= 10 ? Colors.green : Colors.pink,
+  description: 'Log 10 drinks in a single day.',
+  progressText: '$logCount / 10 drinks',
+  progressValue: (logCount / 10).clamp(0.0, 1.0),
+  isLocked: logCount < 10,
+),
     ];
+    
 
     return Scaffold(
       appBar: AppBar(
