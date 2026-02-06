@@ -105,6 +105,23 @@ void _onSearchChanged(String value) {
             ),
             const SizedBox(height: 16),
 
+            AppButton(
+              label: 'Add Drink',
+              filled: false,
+              onPressed: () async {
+                //Create dialog box with inputs for drink name, size, and caffeine amount, then get the values
+                final List<String?>? drink = await addCustomDrink(context);
+
+                //If the drink exists and isn't blank, add it to the library
+                if (drink != null && drink.isNotEmpty){
+                  //Calculate caffeine per ounce and hydration factor
+
+                  //Create a beverage and add it to the library
+
+                }
+              },
+            ),
+
             if (isLoading)
               const Expanded(
                 child: Center(
@@ -170,4 +187,58 @@ void _onSearchChanged(String value) {
       ),
     );
   }
+}
+
+//Ensures control of input text
+final TextEditingController _nameController = TextEditingController();
+final TextEditingController _sizeController = TextEditingController();
+final TextEditingController _caffeineController = TextEditingController();
+
+//Create the input fields for the custom drink and return the values
+Future<List<String?>?> addCustomDrink(BuildContext context) async {
+  showDialog(
+    context: context, 
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Enter your custom drink'),
+        content: Column(
+          children: TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(hintText: 'Drink name')
+          ),
+          TextField(
+            controller: _sizeController,
+            decoration: const InputDecoration(hintText: 'Drink size')
+          ),
+          TextField(
+            controller: _caffeineController,
+            decoration: const InputDecoration(hintText: 'Drink caffeine content')
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(child: const Text("Cancel"),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _nameController.clear();
+              _sizeController.clear();
+              _caffeineController.clear();
+            },
+          ),
+          TextButton(child: const Text("Submit"),
+            onPressed: () {
+              String name = _nameController.text;
+              String size = _sizeController.text;
+              String caff = _caffeineController.text;
+              List<String> drink = [name, size, caff];
+
+              Navigator.of(context).pop(drink);
+              _nameController.clear();
+              _sizeController.clear();
+              _caffeineController.clear();
+            },
+          )
+        ]
+      )
+    }
+  )
 }
