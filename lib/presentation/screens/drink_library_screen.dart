@@ -108,18 +108,8 @@ void _onSearchChanged(String value) {
             AppButton(
               label: 'Add Drink',
               filled: false,
-              onPressed: () async {
-                //Create dialog box with inputs for drink name, size, and caffeine amount, then get the values
-                final List<String?>? drink = await addCustomDrink(context);
-
-                //If the drink exists and isn't blank, add it to the library
-                if (drink != null && drink.isNotEmpty){
-                  //Calculate caffeine per ounce and hydration factor
-
-                  //Create a beverage and add it to the library
-
-                }
-              },
+              //Call add drink input method
+              onPressed: () => _showDrinkInput(context),
             ),
 
             if (isLoading)
@@ -187,58 +177,137 @@ void _onSearchChanged(String value) {
       ),
     );
   }
+
+  //Activate input dialog and process results
+  void _showDrinkInput(BuildContext context) async {
+    final drink = await showDialog(
+      context: context,
+      builder: (context) => DrinkInput(),
+    );
+
+    if(drink != null){
+      String name = drink["name"];
+      double size = drink["size"];
+      double caff = drink["caff"];
+
+      double caffPerOz = caff / size;
+      double hydFac = switch (caffPerOz) {
+        >= 60 => 0.6,
+        >= 40 && < 60 => 0.65,
+        >= 25 && < 40 => 0.7,
+        >= 15 && < 25 => 0.75,
+        >= 10 && < 15 => 0.8,
+        >= 5 && < 10 => 0.85,
+        >= 2 && < 5 => 0.9,
+        > 0 && < 2 => 0.95,
+        0 => 1.0,
+        _ => 0.0
+      };
+
+      //Add a drink using the name, caffPerOz, hydFac, and size
+      print(name);
+      print(hydFac);
+    }
+  }
 }
 
-//Ensures control of input text
-final TextEditingController _nameController = TextEditingController();
-final TextEditingController _sizeController = TextEditingController();
-final TextEditingController _caffeineController = TextEditingController();
+class DrinkInput extends StatefulWidget {
+  @override
+  _AddCustomDrink createState() => _AddCustomDrink();
+}
 
 //Create the input fields for the custom drink and return the values
-Future<List<String?>?> addCustomDrink(BuildContext context) async {
-  showDialog(
-    context: context, 
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Enter your custom drink'),
-        content: Column(
-          children: TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(hintText: 'Drink name')
-          ),
-          TextField(
-            controller: _sizeController,
-            decoration: const InputDecoration(hintText: 'Drink size')
-          ),
-          TextField(
-            controller: _caffeineController,
-            decoration: const InputDecoration(hintText: 'Drink caffeine content')
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(child: const Text("Cancel"),
-            onPressed: () {
-              Navigator.of(context).pop();
-              _nameController.clear();
-              _sizeController.clear();
-              _caffeineController.clear();
-            },
-          ),
-          TextButton(child: const Text("Submit"),
-            onPressed: () {
-              String name = _nameController.text;
-              String size = _sizeController.text;
-              String caff = _caffeineController.text;
-              List<String> drink = [name, size, caff];
+class _AddCustomDrink extends State<DrinkInput> {
+  //Ensures control of input text
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _sizeController = TextEditingController();
+  final TextEditingController _caffeineController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-              Navigator.of(context).pop(drink);
-              _nameController.clear();
-              _sizeController.clear();
-              _caffeineController.clear();
-            },
-          )
-        ]
-      )
-    }
-  )
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _sizeController.dispose();
+    _caffeineController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Enter your custom drink'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(hintText: "Drink name"),
+              validator: (value) {
+                if (value == null || value.isEmpty){
+                  return "Please enter a drink name";
+                }
+                return null;
+              }
+            ),
+            TextFormField(
+              controller: _sizeController,
+              decoration: InputDecoration(hintText: "Drink size"),
+              validator: (value) {
+                if (value == null || value.isEmpty){
+                  return "Please enter a drink size";
+                }
+                else {
+                  double? size = double.tryParse(value);
+                  if (size == null){
+                    return "Please enter a number";
+                  }
+                }
+                return null;
+              }
+            ),
+            TextFormField(
+              controller: _caffeineController,
+              decoration: InputDecoration(hintText: "Drink caffeine content"),
+              validator: (value) {
+                if (value == null || value.isEmpty){
+                  return "Please enter a caffeine amount";
+                }
+                else {
+                  double? caff = double.tryParse(value);
+                  if (caff == null){
+                    return "Please enter a number";
+                  }
+                }
+                return null;
+              }
+            )
+          ],
+        )
+      ),
+      actions: <Widget>[
+        TextButton(child: const Text("Cancel"),
+          onPressed: () {
+            Navigator.of(context).pop();
+            _nameController.clear();
+            _sizeController.clear();
+            _caffeineController.clear();
+          },
+        ),
+        TextButton(child: const Text("Submit"),
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+            // Return the entered data to the caller
+              Navigator.of(context).pop({
+                'name': _nameController.text,
+                'size': double.parse(_sizeController.text),
+                'caff': double.parse(_caffeineController.text)
+              });
+            }
+          },
+        )
+      ]
+    );
+  }
 }
