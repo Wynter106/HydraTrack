@@ -29,9 +29,9 @@ class NotificationManager {
     await android?.requestNotificationsPermission();
   }
 
-  /// 매일 1번: 사용자가 고른 시간(time)에 반복 알림
+  /// Once per day: repeating reminder at the user-selected time (time)
   Future<void> scheduleDailyHydrationReminder(TimeOfDay time) async {
-    // 중복 방지: 기존 스케줄 제거
+    // Prevent duplicates: remove existing schedule first
     await cancelHydrationReminder();
 
     const androidDetails = AndroidNotificationDetails(
@@ -45,7 +45,7 @@ class NotificationManager {
 
     final now = tz.TZDateTime.now(tz.local);
 
-    // 오늘 time 시각
+    // Today's scheduled time
     var scheduled = tz.TZDateTime(
       tz.local,
       now.year,
@@ -55,7 +55,7 @@ class NotificationManager {
       time.minute,
     );
 
-    // 이미 지났으면 내일로
+    // If it's already passed, schedule for tomorrow
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -66,11 +66,11 @@ class NotificationManager {
       'Time to drink water 💧',
       scheduled,
       details,
-      // exact 알람 권한 이슈 피하려고 inexact 사용 (더 안정적)
+      // Use inexact scheduling to avoid exact alarm permission issues (more reliable)
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // 매일 같은 시간 반복
+      matchDateTimeComponents: DateTimeComponents.time, // Repeat daily at the same time
     );
   }
 
@@ -82,7 +82,7 @@ class NotificationManager {
     await _plugin.cancelAll();
   }
 
-  /// (옵션) 토글 켰을 때 바로 뜨는 “확인용” 알림
+  /// An immediate "confirmation" notification shown when a toggle is enabled
   Future<void> showTestNotification() async {
     const androidDetails = AndroidNotificationDetails(
       'test_channel',

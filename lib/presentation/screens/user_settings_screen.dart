@@ -63,7 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _reminderTime = picked);
     await _savePrefs();
 
-    // ON 상태면 시간 바꾸자마자 스케줄도 갱신
+    // If notifications are ON, refresh the schedule immediately after changing the time
     if (_notificationsEnabled) {
       await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
       if (!mounted) return;
@@ -78,8 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _savePrefs();
 
     if (val) {
-      // 권한/플러그인 초기화는 main.dart에서 이미 했다는 가정
-      await NotificationManager.instance.showTestNotification(); // 즉시 확인용(원하면 제거 가능)
+      await NotificationManager.instance.showTestNotification();
       await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
 
       if (!mounted) return;
