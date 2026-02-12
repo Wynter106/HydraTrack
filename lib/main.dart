@@ -15,7 +15,7 @@ import 'application/providers/auth_provider.dart';
 import 'business/managers/notification_manager.dart';
 import 'application/providers/profile_provider.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(

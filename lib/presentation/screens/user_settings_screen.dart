@@ -1,10 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/providers/auth_provider.dart';
+import '../../business/managers/notification_manager.dart';
 import 'profile_setup_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsScreen extends StatelessWidget {
+
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  
+  static const _kNotiEnabledKey = 'noti_enabled';
+  static const _kNotiHourKey = 'noti_hour';
+  static const _kNotiMinuteKey = 'noti_minute';
+  bool _notificationsEnabled = false;
+
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 15, minute: 30);
+
+
+
+      @override
+        void initState() {
+          super.initState();
+          _loadPrefs();
+        }
+
+  Future<void> _loadPrefs() async {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool(_kNotiEnabledKey) ?? false;
+      final hour = prefs.getInt(_kNotiHourKey);
+      final minute = prefs.getInt(_kNotiMinuteKey);
+
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = enabled;
+        if (hour != null && minute != null) {
+          _reminderTime = TimeOfDay(hour: hour, minute: minute);
+        }
+      });
+    }
+
+    Future<void> _savePrefs() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kNotiEnabledKey, _notificationsEnabled);
+      await prefs.setInt(_kNotiHourKey, _reminderTime.hour);
+      await prefs.setInt(_kNotiMinuteKey, _reminderTime.minute);
+    }
+
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _reminderTime,
+    );
+
+    if (picked == null) return;
+
+    setState(() => _reminderTime = picked);
+    await _savePrefs();
+
+    // ON 상태면 시간 바꾸자마자 스케줄도 갱신
+    if (_notificationsEnabled) {
+      await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Reminder time updated: ${_reminderTime.format(context)}')),
+      );
+    }
+  }
+
+  Future<void> _toggleNotifications(bool val) async {
+    setState(() => _notificationsEnabled = val);
+    await _savePrefs();
+
+    if (val) {
+      // 권한/플러그인 초기화는 main.dart에서 이미 했다는 가정
+      await NotificationManager.instance.showTestNotification(); // 즉시 확인용(원하면 제거 가능)
+      await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Daily reminder scheduled: ${_reminderTime.format(context)}')),
+      );
+    } else {
+      await NotificationManager.instance.cancelHydrationReminder();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Daily reminder cancelled')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,23 +111,48 @@ class SettingsScreen extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          
+
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('Edit Profile'),
-            subtitle: Text('Birthdate, goal, unit preferences'),
-            trailing: Icon(Icons.chevron_right),
+            leading: const Icon(Icons.person),
+            title: const Text('Edit Profile'),
+            subtitle: const Text('Birthdate, goal, unit preferences'),
+            trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProfileSetupScreen(isFirstTime: false),
+                  builder: (context) => const ProfileSetupScreen(isFirstTime: false),
                 ),
               );
             },
           ),
 
-          Divider(),
+          const Divider(),
+
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Notifications',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+
+          SwitchListTile(
+            title: const Text('Remind me to drink water'),
+            subtitle: Text('Daily at ${_reminderTime.format(context)}'),
+            value: _notificationsEnabled,
+            onChanged: (val) => _toggleNotifications(val),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: const Text('Reminder time'),
+            subtitle: Text(_reminderTime.format(context)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _pickReminderTime,
+          ),
+
+          const Divider(),
 
           const Padding(
             padding: EdgeInsets.all(16.0),
@@ -48,22 +163,22 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           ListTile(
-            leading: Icon(Icons.logout, color: Colors.red),
-            title: Text('Logout', style: TextStyle(color: Colors.red)),
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Logout', style: TextStyle(color: Colors.red)),
             onTap: () async {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('Logout'),
-                  content: Text('Are you sure you want to logout?'),
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: Text('Cancel'),
+                      child: const Text('Cancel'),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: Text('Logout'),
+                      child: const Text('Logout'),
                     ),
                   ],
                 ),
@@ -72,7 +187,8 @@ class SettingsScreen extends StatelessWidget {
               if (confirm == true) {
                 final authProvider = context.read<AuthProvider>();
                 await authProvider.signOut();
-                
+
+                if (!mounted) return;
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/login',
@@ -82,7 +198,7 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
 
-          Divider(),
+          const Divider(),
 
           const Padding(
             padding: EdgeInsets.all(16.0),
@@ -92,7 +208,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
 
-          ListTile(
+          const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('Version'),
             subtitle: Text('1.0.0 (Alpha)'),

@@ -53,7 +53,7 @@ class DrinkLogDao {
     final logs = await getLogsForDay(day);
     double total = 0;
     for (final log in logs) {
-      total += log.actualHydrationOz;
+      total += log.hydrationContributionOz;
     }
     return total;
   }

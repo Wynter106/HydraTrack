@@ -23,16 +23,17 @@ class NotificationManager {
   }
 
   Future<void> requestPermissionIfNeeded() async {
-    // Android 13+ permission
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
 
     await android?.requestNotificationsPermission();
   }
 
-  Future<void> scheduleHydrationReminderEvery2Hours() async {
-    // 알림 채널(안드로이드)
+  /// 매일 1번: 사용자가 고른 시간(time)에 반복 알림
+  Future<void> scheduleDailyHydrationReminder(TimeOfDay time) async {
+    // 중복 방지: 기존 스케줄 제거
+    await cancelHydrationReminder();
+
     const androidDetails = AndroidNotificationDetails(
       'hydration_channel',
       'Hydration Reminders',
@@ -40,25 +41,48 @@ class NotificationManager {
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
     );
-
     const details = NotificationDetails(android: androidDetails);
 
-    // 다음 2시간 후부터 2시간 간격 반복
-    final firstTime = tz.TZDateTime.now(tz.local).add(const Duration(hours: 2));
+    final now = tz.TZDateTime.now(tz.local);
+
+    // 오늘 time 시각
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // 이미 지났으면 내일로
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
 
     await _plugin.zonedSchedule(
       hydrationReminderId,
       'HydraTrack',
       'Time to drink water 💧',
-      firstTime,
+      scheduled,
       details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // exact 알람 권한 이슈 피하려고 inexact 사용 (더 안정적)
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // ❌ 이건 "매일 같은 시간"용이라 MVP에선 빼는 게 안전
+      matchDateTimeComponents: DateTimeComponents.time, // 매일 같은 시간 반복
     );
   }
 
+  Future<void> cancelHydrationReminder() async {
+    await _plugin.cancel(hydrationReminderId);
+  }
+
+  Future<void> cancelAll() async {
+    await _plugin.cancelAll();
+  }
+
+  /// (옵션) 토글 켰을 때 바로 뜨는 “확인용” 알림
   Future<void> showTestNotification() async {
     const androidDetails = AndroidNotificationDetails(
       'test_channel',
@@ -67,7 +91,6 @@ class NotificationManager {
       importance: Importance.max,
       priority: Priority.high,
     );
-
     const details = NotificationDetails(android: androidDetails);
 
     await _plugin.show(
@@ -77,116 +100,4 @@ class NotificationManager {
       details,
     );
   }
-
-  Future<void> cancelHydrationReminders() async {
-    await _plugin.cancel(hydrationReminderId);
-  }
-
-  Future<void> cancelAll() async {
-    await _plugin.cancelAll();
-  }
-
-
-
-Future<void> scheduleDailyHydrationReminders({
-  List<TimeOfDay>? times,
-}) async {
-  times ??= [
-    const TimeOfDay(hour: 10, minute: 0),
-    const TimeOfDay(hour: 13, minute: 0),
-    const TimeOfDay(hour: 19, minute: 0),
-  ];
-
-  const androidDetails = AndroidNotificationDetails(
-    'hydration_channel',
-    'Hydration Reminders',
-    channelDescription: 'Reminders to drink water',
-    importance: Importance.defaultImportance,
-    priority: Priority.defaultPriority,
-  );
-  const details = NotificationDetails(android: androidDetails);
-
-  await cancelHydrationDailyReminders(count: times.length);
-
-  final now = tz.TZDateTime.now(tz.local);
-
-  for (int i = 0; i < times.length; i++) {
-    final t = times[i];
-
-    var scheduled = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      t.hour,
-      t.minute,
-    );
-
-    if (scheduled.isBefore(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
-    }
-
-    final id = hydrationReminderId + i;
-
-    await _plugin.zonedSchedule(
-      id,
-      'HydraTrack',
-      'Time to drink water 💧',
-      scheduled,
-      details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
-  }
-}
-
-Future<void> cancelHydrationDailyReminders({int count = 3}) async {
-  for (int i = 0; i < count; i++) {
-    await _plugin.cancel(hydrationReminderId + i);
-  }
-}
-
-
-Future<void> scheduleOneShotTestInSeconds(int seconds) async {
-  const androidDetails = AndroidNotificationDetails(
-    'test_channel',
-    'Test Notifications',
-    channelDescription: 'For testing notifications',
-    importance: Importance.max,
-    priority: Priority.high,
-  );
-  const details = NotificationDetails(android: androidDetails);
-
-  final scheduled = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
-  print('One-shot scheduled at: $scheduled (tz.local=${tz.local.name})');
-
-  await _plugin.zonedSchedule(
-    8888,
-    'HydraTrack',
-    'One-shot in $seconds seconds ✅',
-    scheduled,
-    details,
-    androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
-  );
-}
-Future<void> scheduleTestRemindersNext1to3Minutes() async {
-  final now = DateTime.now();
-
-  int addMinutes(int m) => (now.minute + m) % 60;
-  int addHoursIfNeeded(int m) =>
-      (now.minute + m >= 60) ? ((now.hour + 1) % 24) : now.hour;
-
-  await scheduleDailyHydrationReminders(
-    times: [
-      TimeOfDay(hour: addHoursIfNeeded(1), minute: addMinutes(1)),
-      TimeOfDay(hour: addHoursIfNeeded(2), minute: addMinutes(2)),
-      TimeOfDay(hour: addHoursIfNeeded(3), minute: addMinutes(3)),
-    ],
-  );
-}
-
 }
