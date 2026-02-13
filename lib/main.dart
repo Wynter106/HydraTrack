@@ -14,6 +14,7 @@ import 'application/providers/hydration_provider.dart';
 import 'application/providers/auth_provider.dart';
 import 'business/managers/notification_manager.dart';
 import 'application/providers/profile_provider.dart';
+import 'application/providers/favorite_drinks_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HydrationProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => FavoriteDrinksProvider()),
       ],
       child: const MyApp(),
     ),

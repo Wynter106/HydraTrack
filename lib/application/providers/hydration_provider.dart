@@ -83,11 +83,24 @@ class HydrationProvider extends ChangeNotifier {
   
   Future<void> loadTodayLogs() async {
     final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
+    
+    debugPrint('═══════════════════════════════');
+    debugPrint('🔍 loadTodayLogs() START');
+    debugPrint('🔍 User ID: $userId');
+    
+    if (userId == null) {
+      debugPrint('❌ User ID is NULL - not logged in!');
+      debugPrint('═══════════════════════════════');
+      return;
+    }
     
     try {
       final now = DateTime.now().toUtc();
       final startOfDay = DateTime.utc(now.year, now.month, now.day);
+      
+      debugPrint('🔍 Current UTC time: $now');
+      debugPrint('🔍 Start of day UTC: $startOfDay');
+      debugPrint('🔍 Querying Supabase...');
       
       final data = await _supabase
           .from('beverage_logs')
@@ -96,11 +109,17 @@ class HydrationProvider extends ChangeNotifier {
           .gte('logged_at', startOfDay.toIso8601String())
           .order('logged_at', ascending: false);
       
+      debugPrint('🔍 Supabase response length: ${data.length}');
+      debugPrint('🔍 Raw data: $data');
+      
       _hydrationCurrent = 0;
       _caffeineCurrent = 0;
       _todayLogs.clear();
       
-      for (final json in data) {
+      for (int i = 0; i < data.length; i++) {
+        final json = data[i];
+        debugPrint('  [$i] ${json['beverage_name']} | ${json['amount_oz']}oz | ${json['logged_at']}');
+        
         final hydration = (json['hydration_contribution_oz'] as num?)?.toDouble() ?? 0;
         final caffeine = (json['caffeine_mg'] as num?)?.toDouble() ?? 0;
         final volume = (json['amount_oz'] as num?)?.toDouble() ?? 0;
@@ -122,10 +141,17 @@ class HydrationProvider extends ChangeNotifier {
         _allLogs.add(logEntry);
       }
       
+      debugPrint('✅ Loaded ${_todayLogs.length} logs');
+      debugPrint('✅ Total hydration: ${_hydrationCurrent.toStringAsFixed(1)} oz');
+      debugPrint('✅ Total caffeine: ${_caffeineCurrent.toStringAsFixed(0)} mg');
+      debugPrint('═══════════════════════════════');
+      
       notifyListeners();
       
-    } catch (e) {
-      debugPrint('Error loading logs: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
+      debugPrint('═══════════════════════════════');
     }
   }
   

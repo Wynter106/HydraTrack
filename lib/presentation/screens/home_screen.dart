@@ -5,14 +5,10 @@ import '../../data/dao/beverages_dao.dart';
 import '../../data/models/beverage.dart';
 import '../../application/providers/hydration_provider.dart';
 import '../../application/providers/profile_provider.dart';
+import '../../application/providers/favorite_drinks_provider.dart'; // Added!
+import '../../data/models/favorite_drink.dart'; // Added!
 
 /// HomeScreen - Main screen showing hydration progress and quick add buttons
-/// 
-/// This screen:
-/// - Displays today's hydration and caffeine progress
-/// - Provides Quick Add buttons for common drinks
-/// - Uses Provider to share data with other screens
-/// - Updates automatically when Provider data changes
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,140 +17,107 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Database access for beverages
   final BeverageDao dao = BeverageDao();
 
   @override
   void initState() {
     super.initState();
-    _checkDatabase(); 
 
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    final profileProvider = context.read<ProfileProvider>();
-    final hydrationProvider = context.read<HydrationProvider>();
-    
-    await profileProvider.loadProfile();
-    
-    hydrationProvider.setHydrationGoal(profileProvider.dailyHydrationGoalOz.toDouble());
-    hydrationProvider.setCaffeineLimit(profileProvider.dailyCaffeineLimitMg.toDouble());
-    
-    await hydrationProvider.loadTodayLogs();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final profileProvider = context.read<ProfileProvider>();
+      final hydrationProvider = context.read<HydrationProvider>();
+      final favProvider = context.read<FavoriteDrinksProvider>(); // Added!
+
+      // Load profile
+      await profileProvider.loadProfile();
+
+      // Set goals
+      hydrationProvider.setHydrationGoal(profileProvider.dailyHydrationGoalOz.toDouble());
+      hydrationProvider.setCaffeineLimit(profileProvider.dailyCaffeineLimitMg.toDouble());
+
+      // Load today's logs
+      await hydrationProvider.loadTodayLogs();
+
+      // Load favorites first
+      await favProvider.loadFavorites();
+
+      // Initialize defaults ONLY if empty
+      if (favProvider.favorites.isEmpty) {
+        debugPrint('🔵 No favorites found, initializing defaults...');
+        await favProvider.initializeDefaults();
+      }
+
+      debugPrint('✅ Loaded ${favProvider.favorites.length} favorites');
+      debugPrint('✅ Quick Add count: ${favProvider.quickAddFavorites.length}');
+
+      debugPrint('✅ Loaded ${favProvider.favorites.length} favorites');
+      debugPrint('✅ Quick Add count: ${favProvider.quickAddFavorites.length}');
     });
   }
 
-  /// Check what's in database (for debugging)
-  /// TODO: Remove after testing
-  Future<void> _checkDatabase() async {
-    debugPrint('=== Checking Database ===');
-    final results = await dao.searchBeverages('Water');
-    debugPrint('Found ${results.length} results for "Water":');
-    for (var bev in results) {
-      debugPrint('  - "${bev.name}"');
-    }
-    debugPrint('=========================');
-  }
-
-  /// Quick Add default drinks
-  /// These names must match exactly with database entries
-  /// TODO: Make this customizable in Settings
-  final List<Map<String, dynamic>> quickAddItems = [
-    {
-      'name': 'Water',
-      'icon': Icons.water_drop,
-      'dbName': 'Water',
-      'volumeOz': 8.0,
-    },
-    {
-      'name': 'Coffee',
-      'icon': Icons.coffee,
-      'dbName': 'Coffee',
-      'volumeOz': 8.0,
-    },
-    {
-      'name': 'Tea',
-      'icon': Icons.emoji_food_beverage,
-      'dbName': 'Tea (Green)',
-      'volumeOz': 8.0,
-    },
-    {
-      'name': 'Soda',
-      'icon': Icons.local_drink,
-      'dbName': 'Coca-Cola Classic',
-      'volumeOz': 12.0,
-    },
-    {
-      'name': 'Energy',
-      'icon': Icons.bolt,
-      'dbName': 'Red Bull',
-      'volumeOz': 8.0,
-    },
-  ];
-
-  /// Adds a drink from Quick Add button
-  /// 
-  /// Flow:
-  /// 1. Find beverage in database by exact name
-  /// 2. Call Provider.addDrink() with beverage and volume
-  /// 3. Provider calculates hydration/caffeine and stores it
-  /// 4. All screens update automatically
-  Future<void> _addQuickDrink(String dbName, double volumeOz) async {
+  /// Quick add drink from favorites
+  Future<void> _quickAddDrink(FavoriteDrink favorite) async {
     try {
-      // Find beverage in database
-      final beverage = await dao.getBeverageByExactName(dbName);
-      
+      // Get beverage from database
+      final beverage = await dao.getBeverageByExactName(favorite.beverageName);
+
       if (beverage == null) {
-        debugPrint('Error: Beverage not found: $dbName');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Drink not found: $dbName')),
-        );
+        debugPrint('Error: Beverage not found: ${favorite.beverageName}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Drink not found: ${favorite.beverageName}')),
+          );
+        }
         return;
       }
-      
-      // Add to Provider (listen: false because we're in a callback)
-      final provider = Provider.of<HydrationProvider>(context, listen: false);
+
+      // Use custom volume or default
+      final volumeOz = (favorite.customVolumeOz ?? beverage.defaultVolumeOz).toDouble();
+
+      // Add to hydration provider
+      final provider = context.read<HydrationProvider>();
       await provider.addDrink(beverage, volumeOz: volumeOz);
-      
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${volumeOz.toStringAsFixed(1)} oz of ${favorite.beverageName}'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error adding drink: $e');
     }
   }
 
   /// Opens DrinkLibrary and handles selected beverage
-  /// 
-  /// Flow:
-  /// 1. Open DrinkLibrary screen
-  /// 2. Wait for user to select a drink
-  /// 3. DrinkLibrary returns beverage via Navigator.pop()
-  /// 4. Add beverage to Provider
   Future<void> _openDrinkLibrary() async {
-    // Wait for user to select a drink
     final selectedBeverage = await Navigator.pushNamed(context, '/library');
-    
-    // If user selected something (not just pressed back)
+
     if (selectedBeverage != null && selectedBeverage is Beverage) {
-      // Add to Provider
-      final provider = Provider.of<HydrationProvider>(context, listen: false);
+      final provider = context.read<HydrationProvider>();
       await provider.addDrink(selectedBeverage);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch Provider for changes - rebuilds when data changes
-    final provider = Provider.of<HydrationProvider>(context);
+    final provider = context.watch<HydrationProvider>();
     final profileProvider = context.watch<ProfileProvider>();
+    final favProvider = context.watch<FavoriteDrinksProvider>(); // Added!
 
-    final hydrationGoal = profileProvider.dailyHydrationGoalOz;  
+    final hydrationGoal = profileProvider.dailyHydrationGoalOz;
     final caffeineLimit = profileProvider.dailyCaffeineLimitMg;
     final volumeUnit = profileProvider.preferredVolumeUnit;
 
-    // Calculate progress ratios (clamped to 0-1 range)
-    final hydrationRatio = hydrationGoal > 0 
-      ? (provider.hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
-      : 0.0;
+    // Calculate progress ratios
+    final hydrationRatio = hydrationGoal > 0
+        ? (provider.hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
+        : 0.0;
     final caffeineRatio = caffeineLimit > 0
-      ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
-      : 0.0;
+        ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
+        : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -165,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            
             // ==================== TODAY'S PROGRESS ====================
             Text(
               'Today overview',
@@ -190,13 +152,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${provider.hydrationCurrent.toStringAsFixed(1)} / '
-                    '$hydrationGoal $volumeUnit'
-                  ),
+                      '${provider.hydrationCurrent.toStringAsFixed(1)} / '
+                      '$hydrationGoal $volumeUnit'),
 
                   const SizedBox(height: 16),
 
-                  // Caffeine progress bar (turns red when near limit)
+                  // Caffeine progress bar
                   const Text(
                     'Caffeine',
                     style: TextStyle(fontWeight: FontWeight.bold),
@@ -211,9 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${provider.caffeineCurrent.toStringAsFixed(0)} / '
-                    '$caffeineLimit mg'
-                  ),
+                      '${provider.caffeineCurrent.toStringAsFixed(0)} / '
+                      '$caffeineLimit mg'),
                 ],
               ),
             ),
@@ -221,64 +181,21 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             // ==================== QUICK ADD SECTION ====================
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Quick Add',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // 3x2 grid of drink buttons
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    children: [
-                      // Quick add drink buttons
-                      ...quickAddItems.map((item) => _buildQuickAddButton(
-                        icon: item['icon'] as IconData,
-                        label: item['name'] as String,
-                        onTap: () => _addQuickDrink(
-                          item['dbName'] as String,
-                          item['volumeOz'] as double,
-                        ),
-                      )),
-                      
-                      // "More" button opens DrinkLibrary
-                      _buildQuickAddButton(
-                        icon: Icons.add,
-                        label: 'More',
-                        onTap: _openDrinkLibrary,
-                        isHighlighted: true,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _buildQuickAddSection(favProvider),
 
             const SizedBox(height: 24),
 
             // Reset button (for testing)
-            // TODO: Remove before production release
             TextButton(
               onPressed: () {
-                Provider.of<HydrationProvider>(context, listen: false).resetDay();
+                context.read<HydrationProvider>().resetDay();
               },
               child: const Text('Reset (Test)'),
             ),
           ],
         ),
       ),
-      
+
       // ==================== BOTTOM NAVIGATION ====================
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -286,7 +203,6 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (index) {
           switch (index) {
             case 0:
-              // Already on Home
               break;
             case 1:
               Navigator.pushNamed(context, '/log');
@@ -309,10 +225,118 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Builds a single Quick Add button
+  // Build Quick Add section
+  Widget _buildQuickAddSection(FavoriteDrinksProvider favProvider) {
+    final quickAdds = favProvider.quickAddFavorites;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with Edit button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Quick Add',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/library');
+                },
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Edit'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Empty state
+          if (quickAdds.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      'No Quick Add drinks set',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/library');
+                      },
+                      icon: const Icon(Icons.star),
+                      label: const Text('Add Favorites'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          // Quick Add buttons grid
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.9,
+              ),
+              itemCount: quickAdds.length + 1, // +1 for "More" button
+              itemBuilder: (context, index) {
+                // Last item is "More" button
+                if (index == quickAdds.length) {
+                  return _buildQuickAddButton(
+                    icon: Icons.add,
+                    label: 'More',
+                    onTap: _openDrinkLibrary,
+                    isHighlighted: true,
+                  );
+                }
+
+                // Quick Add buttons from favorites
+                final favorite = quickAdds[index];
+                return _buildFavoriteButton(favorite);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Build favorite quick add button
+  Widget _buildFavoriteButton(FavoriteDrink favorite) {
+    // Icon mapping
+    IconData icon = Icons.local_drink;
+    if (favorite.customIcon == 'water_drop') icon = Icons.water_drop;
+    if (favorite.customIcon == 'coffee') icon = Icons.coffee;
+    if (favorite.customIcon == 'emoji_food_beverage') icon = Icons.emoji_food_beverage;
+    if (favorite.customIcon == 'bolt') icon = Icons.bolt;
+
+    // Get first word of beverage name
+    final displayName = favorite.beverageName.split(' ').first;
+    final volumeOz = favorite.customVolumeOz ?? 8.0;
+
+    return _buildQuickAddButton(
+      icon: icon,
+      label: displayName,
+      subtitle: '${volumeOz.toStringAsFixed(0)} oz',
+      onTap: () => _quickAddDrink(favorite),
+    );
+  }
+
+  // Build a single Quick Add button
   Widget _buildQuickAddButton({
     required IconData icon,
     required String label,
+    String? subtitle,
     required VoidCallback onTap,
     bool isHighlighted = false,
   }) {
@@ -340,9 +364,20 @@ class _HomeScreenState extends State<HomeScreen> {
               label,
               style: TextStyle(
                 fontSize: 12,
+                fontWeight: FontWeight.bold,
                 color: isHighlighted ? Colors.white : Colors.grey[700],
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
+            if (subtitle != null)
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isHighlighted ? Colors.white70 : Colors.grey[600],
+                ),
+              ),
           ],
         ),
       ),
