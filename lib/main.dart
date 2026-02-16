@@ -14,6 +14,8 @@ import 'application/providers/hydration_provider.dart';
 import 'application/providers/auth_provider.dart';
 import 'business/managers/notification_manager.dart';
 import 'application/providers/profile_provider.dart';
+import 'application/providers/theme_provider.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +34,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HydrationProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyApp(),
     ),
@@ -43,10 +46,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
       title: 'HydraTrack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeProvider.themeMode,
       
       home: const LoginScreen(), 
       

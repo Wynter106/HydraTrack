@@ -245,4 +245,151 @@ class HydrationProvider extends ChangeNotifier {
       return !dt.isBefore(s) && !dt.isAfter(e);
     }).toList();
   }
+
+  // ===== TIME-BASED CHECKS =====
+
+// Very early log (before 6 AM)
+bool get hasVeryEarlyLog {
+  for (final log in _todayLogs) {
+    final ts = log['timestamp'] as String?;
+    if (ts == null) continue;
+    final dt = DateTime.tryParse(ts);
+    if (dt != null && dt.hour < 6) return true;
+  }
+  return false;
+}
+
+// Lunch log (11 AM - 1 PM)
+bool get hasLunchLog {
+  for (final log in _todayLogs) {
+    final ts = log['timestamp'] as String?;
+    if (ts == null) continue;
+    final dt = DateTime.tryParse(ts);
+    if (dt != null && dt.hour >= 11 && dt.hour < 13) return true;
+  }
+  return false;
+}
+
+// Afternoon log (2 PM - 4 PM)
+bool get hasAfternoonLog {
+  for (final log in _todayLogs) {
+    final ts = log['timestamp'] as String?;
+    if (ts == null) continue;
+    final dt = DateTime.tryParse(ts);
+    if (dt != null && dt.hour >= 14 && dt.hour < 16) return true;
+  }
+  return false;
+}
+
+
+// ===== WEEKEND TRACKING =====
+
+// For now, this checks if TODAY is a weekend day and goal is met
+// For full weekend tracking, you'd need to persist data across days
+int get weekendDaysCompleted {
+  final now = DateTime.now();
+  final isWeekend = now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
+  
+  if (isWeekend && _hydrationCurrent >= _hydrationGoal) {
+    return 1; // Today counts
+  }
+  return 0;
+  
+  // TODO: For full implementation, you'd query Supabase for 
+  // Saturday and Sunday of the current week
+}
+
+bool get weekendGoalsMet => weekendDaysCompleted >= 2;
+
+
+// ===== VARIETY CHECKS =====
+
+// Check if all drinks today are water
+bool get isWaterOnlyDay {
+  if (_todayLogs.isEmpty) return true; // No drinks = technically water only
+  
+  for (final log in _todayLogs) {
+    final name = (log['beverageName'] as String?)?.toLowerCase() ?? '';
+    if (!name.contains('water')) return false;
+  }
+  return true;
+}
+
+
+// ===== RAPID LOGGING CHECK =====
+
+// 3 drinks within 1 hour
+bool get hasRapidLogs {
+  if (_todayLogs.length < 3) return false;
+  
+  // Parse all timestamps and sort
+  final timestamps = <DateTime>[];
+  for (final log in _todayLogs) {
+    final ts = log['timestamp'] as String?;
+    if (ts == null) continue;
+    final dt = DateTime.tryParse(ts);
+    if (dt != null) timestamps.add(dt);
+  }
+  
+  if (timestamps.length < 3) return false;
+  timestamps.sort((a, b) => a.compareTo(b));
+  
+  // Check for any 3 consecutive logs within 60 minutes
+  for (int i = 0; i <= timestamps.length - 3; i++) {
+    final diff = timestamps[i + 2].difference(timestamps[i]);
+    if (diff.inMinutes <= 60) return true;
+  }
+  return false;
+}
+
+
+// ===== STEADY HYDRATION =====
+
+// Checks if user logged at least 1 drink in each 2-hour slot from 8 AM - 8 PM
+int get hourlySlotsFilled {
+  final slots = [8, 10, 12, 14, 16, 18]; // Start hours for each slot
+  int filled = 0;
+  
+  for (final slotStart in slots) {
+    bool hasLogInSlot = false;
+    
+    for (final log in _todayLogs) {
+      final ts = log['timestamp'] as String?;
+      if (ts == null) continue;
+      final dt = DateTime.tryParse(ts);
+      if (dt != null && dt.hour >= slotStart && dt.hour < slotStart + 2) {
+        hasLogInSlot = true;
+        break;
+      }
+    }
+    
+    if (hasLogInSlot) filled++;
+  }
+  
+  return filled;
+}
+
+bool get hasSteadyHydration => hourlySlotsFilled >= 6;
+
+
+// ===== SIZE-BASED CHECKS =====
+
+// Check if any single drink is 32+ oz
+bool get hasLargeDrink {
+  for (final log in _todayLogs) {
+    final volume = (log['volumeOz'] as num?)?.toDouble() ?? 0;
+    if (volume >= 32) return true;
+  }
+  return false;
+}
+
+// Count drinks under 8 oz
+int get smallDrinkCount {
+  int count = 0;
+  for (final log in _todayLogs) {
+    final volume = (log['volumeOz'] as num?)?.toDouble() ?? 0;
+    if (volume > 0 && volume < 8) count++;
+  }
+  return count;
+}
 }
