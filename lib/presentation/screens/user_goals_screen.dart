@@ -5,7 +5,7 @@ import '../../application/providers/hydration_provider.dart';
 /// UserGoalsScreen - shows goals/badges based on today's real drink logs.
 
 class UserGoalsScreen extends StatelessWidget {
-  const UserGoalsScreen({Key? key}) : super(key: key);
+  const UserGoalsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +78,6 @@ class UserGoalsScreen extends StatelessWidget {
             (hydrationCurrent / heroTarget).clamp(0.0, 1.0),
         isLocked: hydrationCurrent < heroTarget,
       ),
-      // ===== STREAK GOALS =====
 
 // 5) Consistency King – 3-day streak
 _GoalCardData(
@@ -89,8 +88,8 @@ _GoalCardData(
   progressText: '${provider.currentStreak} / 3 day streak',
   progressValue: (provider.currentStreak / 3).clamp(0.0, 1.0),
   isLocked: provider.currentStreak < 3,
+  icon: Icons.fire_hydrant
 ),
-
 // 6) Week Warrior – 7-day streak
 _GoalCardData(
   title: 'Week Warrior',
@@ -112,9 +111,6 @@ _GoalCardData(
   progressValue: (provider.currentStreak / 30).clamp(0.0, 1.0),
   isLocked: provider.currentStreak < 30,
 ),
-
-
-// ===== TIME-BASED GOALS =====
 
 // 8) Early Bird – log before 8 AM
 _GoalCardData(
@@ -138,9 +134,6 @@ _GoalCardData(
   isLocked: !provider.hasLateLog,
 ),
 
-
-// ===== VARIETY GOALS =====
-
 // 10) Mixer – log 3 different drink types in one day
 _GoalCardData(
   title: 'Mixer',
@@ -151,9 +144,6 @@ _GoalCardData(
   progressValue: (provider.uniqueDrinkTypesToday / 3).clamp(0.0, 1.0),
   isLocked: provider.uniqueDrinkTypesToday < 3,
 ),
-
-
-// ===== CUMULATIVE / LIFETIME GOALS =====
 
 // 11) Centurion – 100 oz lifetime
 _GoalCardData(
@@ -188,9 +178,6 @@ _GoalCardData(
   isLocked: provider.lifetimeOunces < 1000,
 ),
 
-
-// ===== CHALLENGE GOALS =====
-
 // 14) Overachiever – exceed goal by 50%
 _GoalCardData(
   title: 'Overachiever',
@@ -202,7 +189,187 @@ _GoalCardData(
   isLocked: hydrationCurrent < overachieverTarget,
 ),
 
-// 15) Perfect Ten – log exactly 10 drinks in one day
+// 16) Hydration Habit – 14-day streak (bridges the gap between week and month)
+_GoalCardData(
+  title: 'Hydration Habit',
+  statusLabel: provider.currentStreak >= 14 ? 'Earned' : 'In Progress',
+  statusColor: provider.currentStreak >= 14 ? Colors.green : Colors.deepPurple,
+  description: 'Build a 2-week hydration habit.',
+  progressText: '${provider.currentStreak} / 14 day streak',
+  progressValue: (provider.currentStreak / 14).clamp(0.0, 1.0),
+  isLocked: provider.currentStreak < 14,
+  icon: Icons.autorenew,
+),
+
+// 17) Marathon Month – 60-day streak
+_GoalCardData(
+  title: 'Marathon Month',
+  statusLabel: provider.currentStreak >= 60 ? 'Earned' : 'Locked',
+  statusColor: provider.currentStreak >= 60 ? Colors.green : Colors.grey,
+  description: 'Maintain hydration for 60 days straight.',
+  progressText: '${provider.currentStreak} / 60 days',
+  progressValue: (provider.currentStreak / 60).clamp(0.0, 1.0),
+  isLocked: provider.currentStreak < 60,
+  icon: Icons.emoji_events,
+),
+
+// 18) Sunrise Sipper – log before 6 AM (harder than Early Bird)
+_GoalCardData(
+  title: 'Sunrise Sipper',
+  statusLabel: provider.hasVeryEarlyLog ? 'Earned' : 'Locked',
+  statusColor: provider.hasVeryEarlyLog ? Colors.green : Colors.grey,
+  description: 'Log a drink before 6:00 AM.',
+  progressText: provider.hasVeryEarlyLog ? 'Dawn hydration ✓' : 'Rise and hydrate!',
+  progressValue: provider.hasVeryEarlyLog ? 1.0 : 0.0,
+  isLocked: !provider.hasVeryEarlyLog,
+  icon: Icons.wb_twilight,
+),
+
+// 19) Lunch Break – log between 11 AM and 1 PM
+_GoalCardData(
+  title: 'Lunch Break',
+  statusLabel: provider.hasLunchLog ? 'Earned' : 'Locked',
+  statusColor: provider.hasLunchLog ? Colors.green : Colors.grey,
+  description: 'Stay hydrated during lunch (11 AM - 1 PM).',
+  progressText: provider.hasLunchLog ? 'Midday hydration ✓' : 'Drink with lunch!',
+  progressValue: provider.hasLunchLog ? 1.0 : 0.0,
+  isLocked: !provider.hasLunchLog,
+  icon: Icons.lunch_dining,
+),
+
+// 20) Afternoon Boost – log between 2 PM and 4 PM
+_GoalCardData(
+  title: 'Afternoon Boost',
+  statusLabel: provider.hasAfternoonLog ? 'Earned' : 'Locked',
+  statusColor: provider.hasAfternoonLog ? Colors.green : Colors.grey,
+  description: 'Beat the afternoon slump (2 PM - 4 PM).',
+  progressText: provider.hasAfternoonLog ? 'Afternoon boost ✓' : 'Power through!',
+  progressValue: provider.hasAfternoonLog ? 1.0 : 0.0,
+  isLocked: !provider.hasAfternoonLog,
+  icon: Icons.coffee,
+),
+
+// 21) Weekend Warrior – meet goal on Saturday AND Sunday
+_GoalCardData(
+  title: 'Weekend Warrior',
+  statusLabel: provider.weekendGoalsMet ? 'Earned' : 'In Progress',
+  statusColor: provider.weekendGoalsMet ? Colors.green : Colors.orange,
+  description: 'Hit your goal on both weekend days.',
+  progressText: '${provider.weekendDaysCompleted} / 2 weekend days',
+  progressValue: (provider.weekendDaysCompleted / 2).clamp(0.0, 1.0),
+  isLocked: !provider.weekendGoalsMet,
+  icon: Icons.weekend,
+),
+
+// 22) Water Purist – drink only water for a full day (meet goal with water only)
+_GoalCardData(
+  title: 'Water Purist',
+  statusLabel: provider.isWaterOnlyDay && hydrationRatio >= 1.0 ? 'Earned' : 'In Progress',
+  statusColor: provider.isWaterOnlyDay && hydrationRatio >= 1.0 ? Colors.green : Colors.cyan,
+  description: 'Meet your goal drinking only water.',
+  progressText: provider.isWaterOnlyDay ? 'Pure water day!' : 'Water only so far',
+  progressValue: provider.isWaterOnlyDay && hydrationRatio >= 1.0 ? 1.0 : hydrationRatio * 0.5,
+  isLocked: !(provider.isWaterOnlyDay && hydrationRatio >= 1.0),
+  icon: Icons.opacity,
+),
+
+// 23) Beverage Connoisseur – log 5 different drink types in one day
+_GoalCardData(
+  title: 'Beverage Connoisseur',
+  statusLabel: provider.uniqueDrinkTypesToday >= 5 ? 'Earned' : 'In Progress',
+  statusColor: provider.uniqueDrinkTypesToday >= 5 ? Colors.green : Colors.deepOrange,
+  description: 'Log 5 different drink types today.',
+  progressText: '${provider.uniqueDrinkTypesToday} / 5 types',
+  progressValue: (provider.uniqueDrinkTypesToday / 5).clamp(0.0, 1.0),
+  isLocked: provider.uniqueDrinkTypesToday < 5,
+  icon: Icons.wine_bar,
+),
+
+// 24) Double Down – hit your goal 2 days in a row
+_GoalCardData(
+  title: 'Double Down',
+  statusLabel: provider.currentStreak >= 2 ? 'Earned' : 'In Progress',
+  statusColor: provider.currentStreak >= 2 ? Colors.green : Colors.lightBlue,
+  description: 'Meet your goal 2 days in a row.',
+  progressText: '${provider.currentStreak} / 2 day streak',
+  progressValue: (provider.currentStreak / 2).clamp(0.0, 1.0),
+  isLocked: provider.currentStreak < 2,
+  icon: Icons.looks_two,
+),
+
+// 25) Triple Threat – log 3 drinks within 1 hour
+_GoalCardData(
+  title: 'Triple Threat',
+  statusLabel: provider.hasRapidLogs ? 'Earned' : 'Locked',
+  statusColor: provider.hasRapidLogs ? Colors.green : Colors.grey,
+  description: 'Log 3 drinks within a single hour.',
+  progressText: provider.hasRapidLogs ? 'Speed hydration ✓' : 'Quick succession needed',
+  progressValue: provider.hasRapidLogs ? 1.0 : 0.0,
+  isLocked: !provider.hasRapidLogs,
+  icon: Icons.bolt,
+),
+
+// 26) Steady Stream – log at least 1 drink every 2 hours (8 AM - 8 PM)
+_GoalCardData(
+  title: 'Steady Stream',
+  statusLabel: provider.hasSteadyHydration ? 'Earned' : 'In Progress',
+  statusColor: provider.hasSteadyHydration ? Colors.green : Colors.blueGrey,
+  description: 'Log a drink every 2 hours throughout the day.',
+  progressText: '${provider.hourlySlotsFilled} / 6 time slots',
+  progressValue: (provider.hourlySlotsFilled / 6).clamp(0.0, 1.0),
+  isLocked: !provider.hasSteadyHydration,
+  icon: Icons.stream,
+),
+
+// 27) Mega Gulp – log a single drink of 32+ oz
+_GoalCardData(
+  title: 'Mega Gulp',
+  statusLabel: provider.hasLargeDrink ? 'Earned' : 'Locked',
+  statusColor: provider.hasLargeDrink ? Colors.green : Colors.grey,
+  description: 'Log a single 32+ oz drink.',
+  progressText: provider.hasLargeDrink ? 'Big gulp logged!' : 'Go big or go home',
+  progressValue: provider.hasLargeDrink ? 1.0 : 0.0,
+  isLocked: !provider.hasLargeDrink,
+  icon: Icons.battery_charging_full,
+),
+
+// 28) Micro Sipper – log 10 small drinks (under 8 oz each) in one day
+_GoalCardData(
+  title: 'Micro Sipper',
+  statusLabel: provider.smallDrinkCount >= 10 ? 'Earned' : 'In Progress',
+  statusColor: provider.smallDrinkCount >= 10 ? Colors.green : Colors.lime,
+  description: 'Log 10 small sips (under 8 oz each).',
+  progressText: '${provider.smallDrinkCount} / 10 small drinks',
+  progressValue: (provider.smallDrinkCount / 10).clamp(0.0, 1.0),
+  isLocked: provider.smallDrinkCount < 10,
+  icon: Icons.grain,
+),
+
+// 29) River Runner – 500 oz lifetime
+_GoalCardData(
+  title: 'River Runner',
+  statusLabel: provider.lifetimeOunces >= 500 ? 'Earned' : 'In Progress',
+  statusColor: provider.lifetimeOunces >= 500 ? Colors.green : Colors.lightBlue,
+  description: 'Log 500 oz across your journey.',
+  progressText: '${provider.lifetimeOunces.toStringAsFixed(0)} / 500 oz',
+  progressValue: (provider.lifetimeOunces / 500).clamp(0.0, 1.0),
+  isLocked: provider.lifetimeOunces < 500,
+  icon: Icons.water,
+),
+
+// 30) Lake Legend – 5,000 oz lifetime
+_GoalCardData(
+  title: 'Lake Legend',
+  statusLabel: provider.lifetimeOunces >= 5000 ? 'Earned' : 'Locked',
+  statusColor: provider.lifetimeOunces >= 5000 ? Colors.green : Colors.grey,
+  description: 'Reach 5,000 oz lifetime hydration.',
+  progressText: '${provider.lifetimeOunces.toStringAsFixed(0)} / 5,000 oz',
+  progressValue: (provider.lifetimeOunces / 5000).clamp(0.0, 1.0),
+  isLocked: provider.lifetimeOunces < 5000,
+  icon: Icons.pool,
+),
+
+// 31) Perfect Ten – log exactly 10 drinks in one day
 _GoalCardData(
   title: 'Perfect Ten',
   statusLabel: logCount >= 10 ? 'Earned' : 'In Progress',
@@ -211,6 +378,7 @@ _GoalCardData(
   progressText: '$logCount / 10 drinks',
   progressValue: (logCount / 10).clamp(0.0, 1.0),
   isLocked: logCount < 10,
+  icon: Icons.forest
 ),
     ];
     
@@ -244,6 +412,85 @@ _GoalCardData(
 
 // ===== Helper classes/data for this screen only =====
 
+IconData _getGoalIcon(String title) {
+  switch (title) {
+    // Existing goals
+    case 'First Sip':
+      return Icons.water_drop_outlined;
+    case 'Daily Drinker':
+      return Icons.local_drink;
+    case 'Frequent Sipper':
+      return Icons.repeat;
+    case 'Hydration Hero':
+      return Icons.shield;
+    case 'Consistency King':
+      return Icons.fire_hydrant; // Note: Use emoji or custom if not available
+    case 'Week Warrior':
+      return Icons.calendar_view_week;
+    case 'Monthly Master':
+      return Icons.calendar_month;
+    case 'Early Bird':
+      return Icons.wb_sunny;
+    case 'Night Owl':
+      return Icons.nightlight_round;
+    case 'Mixer':
+      return Icons.blender;
+    case 'Centurion':
+      return Icons.military_tech;
+    case 'Gallon Club':
+      return Icons.workspace_premium;
+    case 'Ocean Explorer':
+      return Icons.sailing;
+    case 'Overachiever':
+      return Icons.trending_up;
+    case 'Perfect Ten':
+      return Icons.forest;
+    
+    // NEW GOALS
+    case 'Splash Starter':
+      return Icons.play_circle_outline;
+    case 'Hydration Habit':
+      return Icons.autorenew;
+    case 'Marathon Month':
+      return Icons.emoji_events;
+    case 'Sunrise Sipper':
+      return Icons.wb_twilight;
+    case 'Lunch Break':
+      return Icons.lunch_dining;
+    case 'Afternoon Boost':
+      return Icons.coffee;
+    case 'Weekend Warrior':
+      return Icons.weekend;
+    case 'Water Purist':
+      return Icons.opacity;
+    case 'Beverage Connoisseur':
+      return Icons.wine_bar;
+    case 'Double Down':
+      return Icons.looks_two;
+    case 'Triple Threat':
+      return Icons.looks_3;
+    case 'Speed Demon':
+      return Icons.bolt;
+    case 'Steady Stream':
+      return Icons.stream;
+    case 'Mega Gulp':
+      return Icons.battery_charging_full;
+    case 'Micro Sipper':
+      return Icons.grain;
+    case 'Comeback Kid':
+      return Icons.refresh;
+    case 'River Runner':
+      return Icons.water;
+    case 'Lake Legend':
+      return Icons.pool;
+    case 'Hydration Station':
+      return Icons.ev_station;
+    
+    default:
+      return Icons.water_drop;
+  }
+}
+
 class _GoalCardData {
   final String title;
   final String statusLabel;
@@ -252,6 +499,7 @@ class _GoalCardData {
   final String? progressText;
   final double? progressValue; // 0.0–1.0
   final bool isLocked;
+  final IconData icon;
 
   _GoalCardData({
     required this.title,
@@ -261,13 +509,14 @@ class _GoalCardData {
     this.progressText,
     this.progressValue,
     this.isLocked = false,
+    this.icon = Icons.water_drop,
   });
 }
 
 class _GoalCard extends StatelessWidget {
   final _GoalCardData goal;
 
-  const _GoalCard({Key? key, required this.goal}) : super(key: key);
+  const _GoalCard({super.key, required this.goal});
 
   @override
   Widget build(BuildContext context) {
@@ -289,8 +538,9 @@ class _GoalCard extends StatelessWidget {
                     ? Colors.grey.shade300
                     : Colors.blue.shade100,
                 child: Icon(
-                  goal.isLocked ? Icons.lock : Icons.water_drop,
-                  color: goal.isLocked ? Colors.grey : Colors.blue,
+                  goal.isLocked ? Icons.lock : goal.icon,
+                  color: goal.isLocked ? Colors.grey : goal.statusColor,
+                  size: 24,
                 ),
               ),
             ),
