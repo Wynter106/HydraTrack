@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/beverage.dart';
-import '../../data/models/drink_log.dart';
 import '../../business/calculators/hydration_calculator.dart';
 import '../../business/calculators/caffeine_tracker.dart';
 
@@ -81,26 +80,14 @@ class HydrationProvider extends ChangeNotifier {
   double get caffeineRemaining => 
       CaffeineTracker.calculateRemaining(_caffeineCurrent, dailyLimit: _caffeineLimit);
   
+  /// Load today's logs from Supabase
   Future<void> loadTodayLogs() async {
     final userId = _supabase.auth.currentUser?.id;
-    
-    debugPrint('═══════════════════════════════');
-    debugPrint('🔍 loadTodayLogs() START');
-    debugPrint('🔍 User ID: $userId');
-    
-    if (userId == null) {
-      debugPrint('❌ User ID is NULL - not logged in!');
-      debugPrint('═══════════════════════════════');
-      return;
-    }
+    if (userId == null) return;
     
     try {
       final now = DateTime.now().toUtc();
       final startOfDay = DateTime.utc(now.year, now.month, now.day);
-      
-      debugPrint('🔍 Current UTC time: $now');
-      debugPrint('🔍 Start of day UTC: $startOfDay');
-      debugPrint('🔍 Querying Supabase...');
       
       final data = await _supabase
           .from('beverage_logs')
@@ -109,17 +96,11 @@ class HydrationProvider extends ChangeNotifier {
           .gte('logged_at', startOfDay.toIso8601String())
           .order('logged_at', ascending: false);
       
-      debugPrint('🔍 Supabase response length: ${data.length}');
-      debugPrint('🔍 Raw data: $data');
-      
       _hydrationCurrent = 0;
       _caffeineCurrent = 0;
       _todayLogs.clear();
       
-      for (int i = 0; i < data.length; i++) {
-        final json = data[i];
-        debugPrint('  [$i] ${json['beverage_name']} | ${json['amount_oz']}oz | ${json['logged_at']}');
-        
+      for (final json in data) {
         final hydration = (json['hydration_contribution_oz'] as num?)?.toDouble() ?? 0;
         final caffeine = (json['caffeine_mg'] as num?)?.toDouble() ?? 0;
         final volume = (json['amount_oz'] as num?)?.toDouble() ?? 0;
@@ -128,6 +109,7 @@ class HydrationProvider extends ChangeNotifier {
         _caffeineCurrent += caffeine;
         
         final logEntry = {
+          'id': json['id'],
           'beverageId': 0,
           'beverageName': json['beverage_name'] ?? '',
           'volumeOz': volume,
@@ -141,20 +123,14 @@ class HydrationProvider extends ChangeNotifier {
         _allLogs.add(logEntry);
       }
       
-      debugPrint('✅ Loaded ${_todayLogs.length} logs');
-      debugPrint('✅ Total hydration: ${_hydrationCurrent.toStringAsFixed(1)} oz');
-      debugPrint('✅ Total caffeine: ${_caffeineCurrent.toStringAsFixed(0)} mg');
-      debugPrint('═══════════════════════════════');
-      
       notifyListeners();
       
-    } catch (e, stackTrace) {
-      debugPrint('❌ ERROR: $e');
-      debugPrint('❌ Stack trace: $stackTrace');
-      debugPrint('═══════════════════════════════');
+    } catch (e) {
+      debugPrint('Error loading logs: $e');
     }
   }
   
+  /// Add a drink
   Future<Map<String, double>> addDrink(Beverage beverage, {double? volumeOz}) async {
     final volume = volumeOz ?? beverage.defaultVolumeOz.toDouble();
     
@@ -168,22 +144,32 @@ class HydrationProvider extends ChangeNotifier {
     );
     
     final userId = _supabase.auth.currentUser?.id;
+    String? supabaseId;
+    
     if (userId != null) {
       try {
-        await _supabase.from('beverage_logs').insert({
-          'user_id': userId,
-          'beverage_name': beverage.name,
-          'amount_oz': volume,
-          'caffeine_mg': caffeine.round(),
-          'hydration_contribution_oz': actualHydration,
-          'logged_at': DateTime.now().toIso8601String(),
-        });
+        final response = await _supabase
+            .from('beverage_logs')
+            .insert({
+              'user_id': userId,
+              'beverage_name': beverage.name,
+              'amount_oz': volume,
+              'caffeine_mg': caffeine.round(),
+              'hydration_contribution_oz': actualHydration,
+              'logged_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .select()
+            .single();
+        
+        supabaseId = response['id'] as String?;
+        
       } catch (e) {
         debugPrint('Error saving to Supabase: $e');
       }
     }
     
     final logEntry = {
+      'id': supabaseId,
       'beverageId': beverage.id ?? 0,
       'beverageName': beverage.name,
       'volumeOz': volume,
@@ -209,11 +195,27 @@ class HydrationProvider extends ChangeNotifier {
     };
   }
   
-  void removeDrink(int index) {
+  /// Remove a drink
+  Future<void> removeDrink(int index) async {
     if (index < 0 || index >= _todayLogs.length) return;
     
     final log = _todayLogs[index];
+    final logId = log['id'] as String?;
     
+    // Delete from Supabase
+    if (logId != null) {
+      try {
+        await _supabase
+            .from('beverage_logs')
+            .delete()
+            .eq('id', logId);
+      } catch (e) {
+        debugPrint('Error deleting from Supabase: $e');
+        return;
+      }
+    }
+    
+    // Update local state
     _hydrationCurrent -= (log['actualHydrationOz'] as double?) ?? 0;
     _caffeineCurrent -= (log['caffeineMg'] as double?) ?? 0;
     
@@ -227,6 +229,18 @@ class HydrationProvider extends ChangeNotifier {
 
     _todayLogs.removeAt(index);
     
+    notifyListeners();
+  }
+  
+  /// Clear all data (for logout)
+  void clearData() {
+    _hydrationCurrent = 0;
+    _caffeineCurrent = 0;
+    _todayLogs.clear();
+    _allLogs.clear();
+    _currentStreak = 0;
+    _lifetimeOunces = 0;
+    _lifetimeDrinkCount = 0;
     notifyListeners();
   }
   
