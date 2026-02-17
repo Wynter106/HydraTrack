@@ -32,7 +32,6 @@ class NotificationManager {
   }
 
   Future<void> scheduleHydrationReminderEvery2Hours() async {
-    // 알림 채널(안드로이드)
     const androidDetails = AndroidNotificationDetails(
       'hydration_channel',
       'Hydration Reminders',
@@ -55,7 +54,7 @@ class NotificationManager {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // ❌ 이건 "매일 같은 시간"용이라 MVP에선 빼는 게 안전
+      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 

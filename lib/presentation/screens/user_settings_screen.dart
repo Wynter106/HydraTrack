@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/providers/auth_provider.dart';
 import '../../application/providers/theme_provider.dart';
+import '../../business/managers/notification_manager.dart';
 import 'profile_setup_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _notificationsEnabled = false;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -21,9 +29,40 @@ class SettingsScreen extends StatelessWidget {
           // ===== APPEARANCE SECTION =====
           _SectionHeader(title: 'Appearance', icon: Icons.palette_outlined),
           const _ThemeSection(),
-          
+
           const SizedBox(height: 8),
-          
+
+          // ===== NOTIFICATIONS SECTION =====
+          _SectionHeader(title: 'Notifications', icon: Icons.notifications_outlined),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SwitchListTile(
+              secondary: Icon(Icons.notifications_active, color: colors.primary),
+              title: const Text('Remind me to drink water'),
+              subtitle: const Text('Test: Immediate + 15s delay'),
+              value: _notificationsEnabled,
+              onChanged: (val) async {
+                setState(() => _notificationsEnabled = val);
+
+                if (val) {
+                  await NotificationManager.instance.requestPermissionIfNeeded();
+                  await NotificationManager.instance.showTestNotification();
+                  await NotificationManager.instance.scheduleOneShotTestInSeconds(15);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Test notification scheduled (15s)')),
+                    );
+                  }
+                } else {
+                  await NotificationManager.instance.cancelAll();
+                }
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
           // ===== PROFILE SECTION =====
           _SectionHeader(title: 'Profile', icon: Icons.person_outline),
           Card(
@@ -37,7 +76,7 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProfileSetupScreen(isFirstTime: false),
+                    builder: (context) => const ProfileSetupScreen(isFirstTime: false),
                   ),
                 );
               },
@@ -69,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
               subtitle: const Text('Version 1.0.0 (Alpha)'),
             ),
           ),
-          
+
           const SizedBox(height: 24),
         ],
       ),
@@ -101,7 +140,7 @@ class SettingsScreen extends StatelessWidget {
     if (confirm == true && context.mounted) {
       final authProvider = context.read<AuthProvider>();
       await authProvider.signOut();
-      
+
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/login',
@@ -121,7 +160,7 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Row(
@@ -150,7 +189,7 @@ class _ThemeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Padding(
@@ -206,7 +245,7 @@ class _ThemeOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -227,8 +266,8 @@ class _ThemeOption extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? colors.primary.withOpacity(0.2) 
+                color: isSelected
+                    ? colors.primary.withOpacity(0.2)
                     : colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -253,8 +292,8 @@ class _ThemeOption extends StatelessWidget {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.onSurface.withOpacity(0.6),
-                    ),
+                          color: colors.onSurface.withOpacity(0.6),
+                        ),
                   ),
                 ],
               ),
