@@ -6,10 +6,11 @@ class FavoriteDrink {
   final String id;
   final String userId;
   final String beverageName;
-  final String? customIcon;           // nullable (optional)
-  final double? customVolumeOz;       // nullable (optional)
+  final String? displayName;
+  final String? customIcon;
+  final double? customVolumeOz;
   final int displayOrder;
-  final bool isQuickAdd;              // whether this is shown in Quick Add
+  final bool isQuickAdd;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +18,7 @@ class FavoriteDrink {
     required this.id,
     required this.userId,
     required this.beverageName,
+    this.displayName,
     this.customIcon,
     this.customVolumeOz,
     required this.displayOrder,
@@ -25,18 +27,15 @@ class FavoriteDrink {
     required this.updatedAt,
   });
 
-  /// Convert Supabase JSON to Dart object
-  /// 
-  /// Usage:
-  /// ```dart
-  /// final data = await supabase.from('favorite_drinks').select();
-  /// final favorite = FavoriteDrink.fromMap(data[0]);
-  /// ```
+  /// Get effective display name (displayName or beverageName)
+  String get effectiveName => displayName ?? beverageName; 
+
   factory FavoriteDrink.fromMap(Map<String, dynamic> map) {
     return FavoriteDrink(
       id: map['id'] as String,
       userId: map['user_id'] as String,
       beverageName: map['beverage_name'] as String,
+      displayName: map['display_name'] as String?,
       customIcon: map['custom_icon'] as String?,
       customVolumeOz: (map['custom_volume_oz'] as num?)?.toDouble(),
       displayOrder: map['display_order'] as int? ?? 0,
@@ -46,16 +45,11 @@ class FavoriteDrink {
     );
   }
 
-  /// Convert Dart object to Supabase JSON
-  /// 
-  /// Usage:
-  /// ```dart
-  /// await supabase.from('favorite_drinks').insert(favorite.toMap());
-  /// ```
   Map<String, dynamic> toMap() {
     return {
       'user_id': userId,
       'beverage_name': beverageName,
+      'display_name': displayName, 
       'custom_icon': customIcon,
       'custom_volume_oz': customVolumeOz,
       'display_order': displayOrder,
@@ -63,16 +57,11 @@ class FavoriteDrink {
     };
   }
 
-  /// Create a copy with some fields updated
-  /// 
-  /// Usage:
-  /// ```dart
-  /// final updated = favorite.copyWith(isQuickAdd: true);
-  /// ```
   FavoriteDrink copyWith({
     String? id,
     String? userId,
     String? beverageName,
+    String? displayName,         
     String? customIcon,
     double? customVolumeOz,
     int? displayOrder,
@@ -84,6 +73,7 @@ class FavoriteDrink {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       beverageName: beverageName ?? this.beverageName,
+      displayName: displayName ?? this.displayName,  
       customIcon: customIcon ?? this.customIcon,
       customVolumeOz: customVolumeOz ?? this.customVolumeOz,
       displayOrder: displayOrder ?? this.displayOrder,
@@ -95,6 +85,6 @@ class FavoriteDrink {
 
   @override
   String toString() {
-    return 'FavoriteDrink(id: $id, beverageName: $beverageName, isQuickAdd: $isQuickAdd)';
+    return 'FavoriteDrink(id: $id, beverageName: $beverageName, displayName: $displayName, isQuickAdd: $isQuickAdd)';
   }
 }

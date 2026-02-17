@@ -48,8 +48,10 @@ class FavoriteDrinksProvider extends ChangeNotifier {
       _favorites = data
           .map((json) => FavoriteDrink.fromMap(json))
           .toList();
-      
-      debugPrint('✅ Loaded ${_favorites.length} favorites');
+
+      for (final f in _favorites) {
+        debugPrint('🔍 ${f.beverageName} | displayName: ${f.displayName} | icon: ${f.customIcon}');
+      }      
     } catch (e) {
       debugPrint('❌ Error loading favorites: $e');
     }
@@ -63,6 +65,7 @@ class FavoriteDrinksProvider extends ChangeNotifier {
   /// Add a new favorite drink
   Future<void> addFavorite({
     required String beverageName,
+    String? displayName,
     String? customIcon,
     double? customVolumeOz,
     bool isQuickAdd = false,
@@ -78,7 +81,8 @@ class FavoriteDrinksProvider extends ChangeNotifier {
       final data = await _supabase.from('favorite_drinks').insert({
         'user_id': userId,
         'beverage_name': beverageName,
-        'custom_icon': customIcon,
+        'display_name': displayName,
+        'custom_icon': customIcon ?? 'local_drink',
         'custom_volume_oz': customVolumeOz,
         'display_order': newOrder,
         'is_quick_add': isQuickAdd,
@@ -159,6 +163,7 @@ class FavoriteDrinksProvider extends ChangeNotifier {
   /// Update favorite's icon and/or volume
   Future<void> updateFavorite({
     required String id,
+    String? displayName,
     String? customIcon,
     double? customVolumeOz,
   }) async {
@@ -167,6 +172,7 @@ class FavoriteDrinksProvider extends ChangeNotifier {
       final updates = <String, dynamic>{
         'updated_at': DateTime.now().toIso8601String(),
       };
+      if (displayName != null) updates['display_name'] = displayName;
       if (customIcon != null) updates['custom_icon'] = customIcon;
       if (customVolumeOz != null) updates['custom_volume_oz'] = customVolumeOz;
       
@@ -278,26 +284,31 @@ class FavoriteDrinksProvider extends ChangeNotifier {
       final defaults = [
         {
           'beverage_name': 'Water',
+          'display_name': 'Water',
           'custom_icon': 'water_drop',
           'custom_volume_oz': 8.0,
         },
         {
           'beverage_name': 'Coffee',
+          'display_name': 'Coffee',
           'custom_icon': 'coffee',
           'custom_volume_oz': 8.0,
         },
         {
           'beverage_name': 'Tea (Green)',
+          'display_name': 'Green Tea', 
           'custom_icon': 'emoji_food_beverage',
           'custom_volume_oz': 8.0,
         },
         {
           'beverage_name': 'Coca-Cola Classic',
+          'display_name': 'Coke', 
           'custom_icon': 'local_drink',
           'custom_volume_oz': 12.0,
         },
         {
           'beverage_name': 'Red Bull',
+          'display_name': 'Red Bull',
           'custom_icon': 'bolt',
           'custom_volume_oz': 8.0,
         },
