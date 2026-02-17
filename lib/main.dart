@@ -18,7 +18,7 @@ import 'application/providers/favorite_drinks_provider.dart';
 import 'application/providers/theme_provider.dart';
 
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(

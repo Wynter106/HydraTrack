@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../application/providers/auth_provider.dart';
 import '../../application/providers/theme_provider.dart';
 import '../../business/managers/notification_manager.dart';
@@ -13,106 +14,81 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const _kNotiEnabledKey = 'noti_enabled';
+  static const _kNotiHourKey = 'noti_hour';
+  static const _kNotiMinuteKey = 'noti_minute';
+
   bool _notificationsEnabled = false;
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 15, minute: 30);
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          // ===== APPEARANCE SECTION =====
-          _SectionHeader(title: 'Appearance', icon: Icons.palette_outlined),
-          const _ThemeSection(),
+  Future<void> _loadPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(_kNotiEnabledKey) ?? false;
+    final hour = prefs.getInt(_kNotiHourKey);
+    final minute = prefs.getInt(_kNotiMinuteKey);
 
-          const SizedBox(height: 8),
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = enabled;
+      if (hour != null && minute != null) {
+        _reminderTime = TimeOfDay(hour: hour, minute: minute);
+      }
+    });
+  }
 
-          // ===== NOTIFICATIONS SECTION =====
-          _SectionHeader(title: 'Notifications', icon: Icons.notifications_outlined),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: SwitchListTile(
-              secondary: Icon(Icons.notifications_active, color: colors.primary),
-              title: const Text('Remind me to drink water'),
-              subtitle: const Text('Test: Immediate + 15s delay'),
-              value: _notificationsEnabled,
-              onChanged: (val) async {
-                setState(() => _notificationsEnabled = val);
+  Future<void> _savePrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotiEnabledKey, _notificationsEnabled);
+    await prefs.setInt(_kNotiHourKey, _reminderTime.hour);
+    await prefs.setInt(_kNotiMinuteKey, _reminderTime.minute);
+  }
 
-                if (val) {
-                  await NotificationManager.instance.requestPermissionIfNeeded();
-                  await NotificationManager.instance.showTestNotification();
-                  await NotificationManager.instance.scheduleOneShotTestInSeconds(15);
+  Future<void> _toggleNotifications(bool val) async {
+    setState(() => _notificationsEnabled = val);
+    await _savePrefs();
 
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Test notification scheduled (15s)')),
-                    );
-                  }
-                } else {
-                  await NotificationManager.instance.cancelAll();
-                }
-              },
-            ),
-          ),
+    if (val) {
+      await NotificationManager.instance.showTestNotification();
+      await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
 
-          const SizedBox(height: 8),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Daily reminder scheduled: ${_reminderTime.format(context)}')),
+      );
+    } else {
+      await NotificationManager.instance.cancelHydrationReminder();
 
-          // ===== PROFILE SECTION =====
-          _SectionHeader(title: 'Profile', icon: Icons.person_outline),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: Icon(Icons.edit_outlined, color: colors.primary),
-              title: const Text('Edit Profile'),
-              subtitle: const Text('Birthdate, goal, unit preferences'),
-              trailing: Icon(Icons.chevron_right, color: colors.onSurface.withOpacity(0.5)),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileSetupScreen(isFirstTime: false),
-                  ),
-                );
-              },
-            ),
-          ),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Daily reminder cancelled')),
+      );
+    }
+  }
 
-          const SizedBox(height: 8),
-
-          // ===== ACCOUNT SECTION =====
-          _SectionHeader(title: 'Account', icon: Icons.account_circle_outlined),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: Icon(Icons.logout, color: colors.error),
-              title: Text('Logout', style: TextStyle(color: colors.error)),
-              onTap: () => _showLogoutDialog(context),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // ===== ABOUT SECTION =====
-          _SectionHeader(title: 'About', icon: Icons.info_outline),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: Icon(Icons.water_drop_outlined, color: colors.primary),
-              title: const Text('HydraTrack'),
-              subtitle: const Text('Version 1.0.0 (Alpha)'),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-        ],
-      ),
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _reminderTime,
     );
+
+    if (picked == null) return;
+
+    setState(() => _reminderTime = picked);
+    await _savePrefs();
+
+    if (_notificationsEnabled) {
+      await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Reminder time updated: ${_reminderTime.format(context)}')),
+      );
+    }
   }
 
   Future<void> _showLogoutDialog(BuildContext context) async {
@@ -141,12 +117,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final authProvider = context.read<AuthProvider>();
       await authProvider.signOut();
 
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/login',
-        (route) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          // ===== APPEARANCE =====
+          _SectionHeader(title: 'Appearance', icon: Icons.palette_outlined),
+          const _ThemeSection(),
+
+          const SizedBox(height: 8),
+
+          // ===== NOTIFICATIONS =====
+          _SectionHeader(title: 'Notifications', icon: Icons.notifications_outlined),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: Icon(Icons.notifications_active, color: colors.primary),
+                  title: const Text('Remind me to drink water'),
+                  subtitle: Text('Daily at ${_reminderTime.format(context)}'),
+                  value: _notificationsEnabled,
+                  onChanged: _toggleNotifications,
+                ),
+                if (_notificationsEnabled) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.access_time, color: colors.primary),
+                    title: const Text('Reminder time'),
+                    subtitle: Text(_reminderTime.format(context)),
+                    trailing: Icon(Icons.chevron_right, color: colors.onSurface.withOpacity(0.5)),
+                    onTap: _pickReminderTime,
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ===== PROFILE =====
+          _SectionHeader(title: 'Profile', icon: Icons.person_outline),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: Icon(Icons.edit_outlined, color: colors.primary),
+              title: const Text('Edit Profile'),
+              subtitle: const Text('Birthdate, goal, unit preferences'),
+              trailing: Icon(Icons.chevron_right, color: colors.onSurface.withOpacity(0.5)),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileSetupScreen(isFirstTime: false),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ===== ACCOUNT =====
+          _SectionHeader(title: 'Account', icon: Icons.account_circle_outlined),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: Icon(Icons.logout, color: colors.error),
+              title: Text('Logout', style: TextStyle(color: colors.error)),
+              onTap: () => _showLogoutDialog(context),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ===== ABOUT =====
+          _SectionHeader(title: 'About', icon: Icons.info_outline),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: Icon(Icons.water_drop_outlined, color: colors.primary),
+              title: const Text('HydraTrack'),
+              subtitle: const Text('Version 1.0.0 (Alpha)'),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
   }
 }
 
@@ -301,11 +369,7 @@ class _ThemeOption extends StatelessWidget {
             AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
               opacity: isSelected ? 1.0 : 0.0,
-              child: Icon(
-                Icons.check_circle,
-                color: colors.primary,
-                size: 22,
-              ),
+              child: Icon(Icons.check_circle, color: colors.primary, size: 22),
             ),
           ],
         ),
