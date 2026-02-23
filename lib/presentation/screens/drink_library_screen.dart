@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/app_card.dart';
 import '../widgets/app_button.dart';
 import '../../data/dao/beverages_dao.dart';
@@ -205,10 +206,27 @@ void _onSearchChanged(String value) {
       };
 
       //Add a drink using the name, caffPerOz, hydFac, and size
-      print(name);
-      print(hydFac);
+      addDrink(size: size, hydFac: hydFac, caffPerOz: caffPerOz, name: name);
     }
   }
+}
+
+Future<void> addDrink({
+  required double size,
+  required double hydFac,
+  required double caffPerOz,
+  required String name,
+}) async {
+  final supabase = Supabase.instance.client;
+  final userId = supabase.auth.currentUser?.id;
+  
+  await supabase.from('custom_beverages').insert({
+    'user_id': userId,
+    'name': name,
+    'caffeine_per_oz': caffPerOz,
+    'hydration_factor': hydFac,
+    'default_volume_oz': size,
+  });
 }
 
 class DrinkInput extends StatefulWidget {
