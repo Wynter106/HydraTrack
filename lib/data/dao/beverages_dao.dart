@@ -16,9 +16,8 @@ class BeverageDao {
     
     final List<Map<String, dynamic>> maps2 = await getMydrinks();
 
-    final maps = [...maps1];
-    maps.addAll(maps2);
-    maps.sort();
+    final maps = [...maps2];
+    maps.addAll(maps1);
 
     return List.generate(maps.length, (i) => Beverage.fromMap(maps[i]));
   }
@@ -63,9 +62,8 @@ class BeverageDao {
 
     final List<Map<String, dynamic>> maps2 = await getMySearchdrinks(query);
     
-    final maps = [...maps1];
-    maps.addAll(maps2);
-    maps.sort();
+    final maps = [...maps2];
+    maps.addAll(maps1);
 
     return List.generate(maps.length, (i) => Beverage.fromMap(maps[i]));
   }
