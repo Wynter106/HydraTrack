@@ -221,6 +221,7 @@ Future<void> addDrink({
   final userId = supabase.auth.currentUser?.id;
   
   await supabase.from('custom_beverages').insert({
+    'id': null,
     'user_id': userId,
     'name': name,
     'caffeine_per_oz': caffPerOz,
