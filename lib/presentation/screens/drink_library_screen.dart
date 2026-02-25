@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/app_card.dart';
 import '../widgets/app_button.dart';
 import '../../data/dao/beverages_dao.dart';
@@ -112,6 +113,13 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
               onChanged: _onSearchChanged,
             ),
             const SizedBox(height: 16),
+
+            // Button to add a custom drink (Integrated feature)
+            AppButton(
+              label: 'Add Custom Drink',
+              filled: false,
+              onPressed: () => _showDrinkInput(context),
+            ),
 
             if (isLoading)
               const Expanded(child: Center(child: CircularProgressIndicator()))
@@ -488,8 +496,166 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     }
   }
 
+  // Show and process the custom drink input dialog
+  void _showDrinkInput(BuildContext context) async {
+    final drink = await showDialog(
+      context: context,
+      builder: (context) => DrinkInput(),
+    );
+
+    if (drink != null) {
+      String name = drink["name"];
+      double size = drink["size"];
+      double caff = drink["caff"];
+
+      double caffPerOz = caff / size;
+      double hydFac = switch (caffPerOz) {
+        >= 60 => 0.6,
+        >= 40 && < 60 => 0.65,
+        >= 25 && < 40 => 0.7,
+        >= 15 && < 25 => 0.75,
+        >= 10 && < 15 => 0.8,
+        >= 5 && < 10 => 0.85,
+        >= 2 && < 5 => 0.9,
+        > 0 && < 2 => 0.95,
+        0 => 1.0,
+        _ => 0.0
+      };
+
+      // Add data to Supabase
+      await addDrink(size: size, hydFac: hydFac, caffPerOz: caffPerOz, name: name);
+      
+      // Refresh the list after adding (Important!)
+      _loadBeverages();
+    }
+  }
+
   @override
   void dispose() {
     super.dispose();
+  }
+}
+
+// ------------------------------------------------------------------
+// Below are external functions and widgets for the Custom Drink feature
+// ------------------------------------------------------------------
+
+Future<void> addDrink({
+  required double size,
+  required double hydFac,
+  required double caffPerOz,
+  required String name,
+}) async {
+  final supabase = Supabase.instance.client;
+  final userId = supabase.auth.currentUser?.id;
+  
+  if (userId == null) return;
+
+  await supabase.from('custom_beverages').insert({
+    'user_id': userId,
+    'name': name,
+    'caffeine_per_oz': caffPerOz,
+    'hydration_factor': hydFac,
+    'default_volume_oz': size,
+  });
+}
+
+class DrinkInput extends StatefulWidget {
+  @override
+  _AddCustomDrink createState() => _AddCustomDrink();
+}
+
+class _AddCustomDrink extends State<DrinkInput> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _sizeController = TextEditingController();
+  final TextEditingController _caffeineController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _sizeController.dispose();
+    _caffeineController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Enter your custom drink'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(hintText: "Drink name"),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return "Please enter a drink name";
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: _sizeController,
+              decoration: const InputDecoration(hintText: "Drink size (oz)"),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return "Please enter a drink size";
+                } else {
+                  double? size = double.tryParse(value);
+                  if (size == null) {
+                    return "Please enter a number";
+                  }
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: _caffeineController,
+              decoration: const InputDecoration(hintText: "Caffeine content (mg)"),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return "Please enter a caffeine amount";
+                } else {
+                  double? caff = double.tryParse(value);
+                  if (caff == null) {
+                    return "Please enter a number";
+                  }
+                }
+                return null;
+              },
+            )
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Navigator.of(context).pop();
+            _nameController.clear();
+            _sizeController.clear();
+            _caffeineController.clear();
+          },
+        ),
+        TextButton(
+          child: const Text("Submit"),
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              Navigator.of(context).pop({
+                'name': _nameController.text,
+                'size': double.parse(_sizeController.text),
+                'caff': double.parse(_caffeineController.text)
+              });
+            }
+          },
+        )
+      ],
+    );
   }
 }

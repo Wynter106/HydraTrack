@@ -4,18 +4,11 @@ import '../../application/providers/hydration_provider.dart';
 import '../widgets/app_card.dart';
 
 /// LogScreen - Shows today's drink history
-/// 
-/// This screen:
-/// - Displays all drinks logged today from Provider
-/// - Shows same data as HomeScreen (shared via Provider)
-/// - Allows deleting drinks from the log
-/// - Updates automatically when Provider data changes
 class LogScreen extends StatelessWidget {
   const LogScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Get data from Provider (same data HomeScreen uses)
     final provider = Provider.of<HydrationProvider>(context);
     final logs = provider.todayLogs;
 
@@ -24,7 +17,6 @@ class LogScreen extends StatelessWidget {
         title: const Text('Today\'s Log'),
         backgroundColor: Colors.blue,
         actions: [
-          // Show total count
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 16),
@@ -39,57 +31,91 @@ class LogScreen extends StatelessWidget {
       body: Column(
         children: [
           // ==================== SUMMARY CARD ====================
-          // Shows same totals as HomeScreen (from Provider)
           Padding(
             padding: const EdgeInsets.all(16),
             child: AppCard(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // Hydration total
+                  Column(
+                    children: [
+                      const Icon(Icons.water_drop, color: Colors.blue),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${provider.hydrationCurrent.toStringAsFixed(1)} oz',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Text('/ ${provider.hydrationGoal.toStringAsFixed(0)} oz goal'),
+                    ],
+                  ),
+                  // Caffeine total
+                  Column(
+                    children: [
+                      Icon(
+                        Icons.bolt,
+                        color: provider.isNearCaffeineLimit ? Colors.red : Colors.orange,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${provider.caffeineCurrent.toStringAsFixed(0)} mg',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: provider.isNearCaffeineLimit ? Colors.red : null,
+                        ),
+                      ),
+                      Text('/ ${provider.caffeineLimit.toStringAsFixed(0)} mg limit'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ==================== STATS BUTTONS (NEW) ====================
+          // 통계 화면으로 이동하는 버튼 추가
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Hydration total
-                Column(
-                  children: [
-                    const Icon(Icons.water_drop, color: Colors.blue),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${provider.hydrationCurrent.toStringAsFixed(1)} oz',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/weekly-stats');
+                    },
+                    icon: const Icon(Icons.bar_chart),
+                    label: const Text('Weekly'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    Text('/ ${provider.hydrationGoal.toStringAsFixed(0)} oz goal'),
-                  ],
+                  ),
                 ),
-                // Caffeine total
-                Column(
-                  children: [
-                    Icon(
-                      Icons.bolt,
-                      color: provider.isNearCaffeineLimit ? Colors.red : Colors.orange,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/monthly-stats');
+                    },
+                    icon: const Icon(Icons.calendar_month),
+                    label: const Text('Monthly'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${provider.caffeineCurrent.toStringAsFixed(0)} mg',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: provider.isNearCaffeineLimit ? Colors.red : null,
-                      ),
-                    ),
-                    Text('/ ${provider.caffeineLimit.toStringAsFixed(0)} mg limit'),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+          
+          const SizedBox(height: 8), // 약간의 여백
 
           // ==================== DRINK LOG LIST ====================
-          // Shows all drinks added from HomeScreen
           Expanded(
             child: logs.isEmpty
-                // Empty state
                 ? const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -108,11 +134,9 @@ class LogScreen extends StatelessWidget {
                       ],
                     ),
                   )
-                // Log list
                 : ListView.builder(
                     itemCount: logs.length,
                     itemBuilder: (context, index) {
-                      // Show newest first (reverse order)
                       final reversedIndex = logs.length - 1 - index;
                       final log = logs[reversedIndex];
                       
@@ -122,41 +146,37 @@ class LogScreen extends StatelessWidget {
                           vertical: 4,
                         ),
                         child: AppCard(
-                        child: ListTile(
-                          // Drink icon
-                          leading: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _getIconForDrink(log['beverageName'] as String?, log['caffeineMg'] as double?),
-                                color: _getColorForDrink(log['beverageName'] as String?, log['caffeineMg'] as double?),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatTime(log['timestamp'] as String?),
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            ],
+                          child: ListTile(
+                            leading: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _getIconForDrink(log['beverageName'] as String?, log['caffeineMg'] as double?),
+                                  color: _getColorForDrink(log['beverageName'] as String?, log['caffeineMg'] as double?),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatTime(log['timestamp'] as String?),
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              ],
+                            ),
+                            title: Text(
+                              log['beverageName'] as String? ?? 'Unknown',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              'Volume: ${(log['volumeOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz\n'
+                              'Hydration: +${(log['actualHydrationOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz '
+                              '(factor: ${log['hydrationFactor'] ?? '?'})\n'
+                              'Caffeine: +${(log['caffeineMg'] as double?)?.toStringAsFixed(0) ?? '0'} mg'
+                            ),
+                            isThreeLine: true,
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () => _confirmDelete(context, provider, reversedIndex, log),
+                            ),
                           ),
-                          // Drink name
-                          title: Text(
-                            log['beverageName'] as String? ?? 'Unknown',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          // Drink details
-                          subtitle: Text(
-                            'Volume: ${(log['volumeOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz\n'
-                            'Hydration: +${(log['actualHydrationOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz '
-                            '(factor: ${log['hydrationFactor'] ?? '?'})\n'
-                            'Caffeine: +${(log['caffeineMg'] as double?)?.toStringAsFixed(0) ?? '0'} mg'
-                          ),
-                          isThreeLine: true,
-                          // Delete button
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () => _confirmDelete(context, provider, reversedIndex, log),
-                          ),
-                        ),
                         ),
                       );
                     },
@@ -167,7 +187,6 @@ class LogScreen extends StatelessWidget {
     );
   }
 
-  /// Shows confirmation dialog before deleting a drink
   void _confirmDelete(
     BuildContext context, 
     HydrationProvider provider, 
@@ -199,7 +218,6 @@ class LogScreen extends StatelessWidget {
     );
   }
 
-  /// Returns appropriate icon based on drink name
   IconData _getIconForDrink(String? name, double? caff) {
     if (name == null || caff == null) return Icons.local_drink;
     final lowerName = name.toLowerCase();
@@ -226,7 +244,6 @@ class LogScreen extends StatelessWidget {
     return Colors.grey;
   }
 
-  /// Formats ISO timestamp to readable time (HH:MM)
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '--:--';
     try {

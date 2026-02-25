@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/database_helper.dart';
 import '../database/tables.dart';
 import '../models/beverage.dart';
@@ -8,12 +9,29 @@ class BeverageDao {
   // Returns: List of all beverages sorted alphabetically
   Future<List<Beverage>> getAllBeverages() async {
     final db = await DatabaseHelper.instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
+    final List<Map<String, dynamic>> maps1 = await db.query(
       TableNames.beverages,
       orderBy: '${BeverageColumns.name} ASC',
     );
+    
+    final List<Map<String, dynamic>> maps2 = await getMydrinks();
+
+    final maps = [...maps2];
+    maps.addAll(maps1);
 
     return List.generate(maps.length, (i) => Beverage.fromMap(maps[i]));
+  }
+
+  Future<List<Map<String, dynamic>>> getMydrinks() async {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+  
+    final response = await supabase
+      .from('custom_beverages')
+      .select()
+      .eq('user_id', userId!);
+    
+    return response;
   }
 
   // Get a single beverage by its ID
@@ -35,14 +53,32 @@ class BeverageDao {
   // Returns: List of matching beverages
   Future<List<Beverage>> searchBeverages(String query) async {
     final db = await DatabaseHelper.instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
+    final List<Map<String, dynamic>> maps1 = await db.query(
       TableNames.beverages,
       where: '${BeverageColumns.name} LIKE ?',
       whereArgs: ['%$query%'],
       orderBy: '${BeverageColumns.name} ASC',
     );
 
+    final List<Map<String, dynamic>> maps2 = await getMySearchdrinks(query);
+    
+    final maps = [...maps2];
+    maps.addAll(maps1);
+
     return List.generate(maps.length, (i) => Beverage.fromMap(maps[i]));
+  }
+
+  Future<List<Map<String, dynamic>>> getMySearchdrinks(String query) async {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+  
+    final response = await supabase
+      .from('custom_beverages')
+      .select()
+      .like('name', '%$query%')
+      .eq('user_id', userId!);
+    
+    return response;
   }
 
   // Get total number of beverages in database

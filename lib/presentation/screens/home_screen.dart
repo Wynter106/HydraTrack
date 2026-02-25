@@ -5,8 +5,11 @@ import '../../data/dao/beverages_dao.dart';
 import '../../data/models/beverage.dart';
 import '../../application/providers/hydration_provider.dart';
 import '../../application/providers/profile_provider.dart';
+<<<<<<< HEAD
 import '../../application/providers/favorite_drinks_provider.dart'; // Added!
 import '../../data/models/favorite_drink.dart'; // Added!
+=======
+>>>>>>> origin/show_supabase
 
 /// HomeScreen - Main screen showing hydration progress and quick add buttons
 class HomeScreen extends StatefulWidget {
@@ -22,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final profileProvider = context.read<ProfileProvider>();
@@ -52,6 +56,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
       debugPrint('✅ Loaded ${favProvider.favorites.length} favorites');
       debugPrint('✅ Quick Add count: ${favProvider.quickAddFavorites.length}');
+=======
+    _checkDatabase(); 
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final profileProvider = context.read<ProfileProvider>();
+    final hydrationProvider = context.read<HydrationProvider>();
+    
+    await profileProvider.loadProfile();
+    
+    hydrationProvider.setHydrationGoal(profileProvider.dailyHydrationGoalOz.toDouble());
+    hydrationProvider.setCaffeineLimit(profileProvider.dailyCaffeineLimitMg.toDouble());
+    
+    await hydrationProvider.loadTodayLogs();
+>>>>>>> origin/show_supabase
     });
   }
 
@@ -70,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         return;
       }
+<<<<<<< HEAD
 
       // Use custom volume or default
       final volumeOz = (favorite.customVolumeOz ?? beverage.defaultVolumeOz).toDouble();
@@ -86,6 +105,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }
+=======
+      
+      // Add to Provider (listen: false because we're in a callback)
+      final provider = Provider.of<HydrationProvider>(context, listen: false);
+      await provider.addDrink(beverage, volumeOz: volumeOz);
+      
+>>>>>>> origin/show_supabase
     } catch (e) {
       debugPrint('Error adding drink: $e');
     }
@@ -96,13 +122,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final selectedBeverage = await Navigator.pushNamed(context, '/library');
 
     if (selectedBeverage != null && selectedBeverage is Beverage) {
+<<<<<<< HEAD
       final provider = context.read<HydrationProvider>();
+=======
+      // Add to Provider
+      final provider = Provider.of<HydrationProvider>(context, listen: false);
+>>>>>>> origin/show_supabase
       await provider.addDrink(selectedBeverage);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final provider = context.watch<HydrationProvider>();
     final profileProvider = context.watch<ProfileProvider>();
     final favProvider = context.watch<FavoriteDrinksProvider>(); // Added!
@@ -118,6 +150,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final caffeineRatio = caffeineLimit > 0
         ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
         : 0.0;
+=======
+    // Watch Provider for changes - rebuilds when data changes
+    final provider = Provider.of<HydrationProvider>(context);
+    final profileProvider = context.watch<ProfileProvider>();
+
+    final hydrationGoal = profileProvider.dailyHydrationGoalOz;  
+    final caffeineLimit = profileProvider.dailyCaffeineLimitMg;
+    final volumeUnit = profileProvider.preferredVolumeUnit;
+
+    // Calculate progress ratios (clamped to 0-1 range)
+    final hydrationRatio = hydrationGoal > 0 
+      ? (provider.hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
+      : 0.0;
+    final caffeineRatio = caffeineLimit > 0
+      ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
+      : 0.0;
+>>>>>>> origin/show_supabase
 
     return Scaffold(
       appBar: AppBar(
@@ -152,8 +201,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
+<<<<<<< HEAD
                       '${provider.hydrationCurrent.toStringAsFixed(1)} / '
                       '$hydrationGoal $volumeUnit'),
+=======
+                    '${provider.hydrationCurrent.toStringAsFixed(1)} / '
+                    '$hydrationGoal $volumeUnit'
+                  ),
+>>>>>>> origin/show_supabase
 
                   const SizedBox(height: 16),
 
@@ -172,8 +227,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
+<<<<<<< HEAD
                       '${provider.caffeineCurrent.toStringAsFixed(0)} / '
                       '$caffeineLimit mg'),
+=======
+                    '${provider.caffeineCurrent.toStringAsFixed(0)} / '
+                    '$caffeineLimit mg'
+                  ),
+>>>>>>> origin/show_supabase
                 ],
               ),
             ),
