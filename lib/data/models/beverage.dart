@@ -24,9 +24,9 @@ class Beverage {
     return Beverage(
       id: map['id'] as int?,
       name: map['name'] as String,
-      caffeinePerOz: map['caffeine_per_oz'] as double,
-      hydrationFactor: map['hydration_factor'] as double,
-      defaultVolumeOz: map['default_volume_oz'] as int,
+      caffeinePerOz: (map['caffeine_per_oz'] as num).toDouble(),
+      hydrationFactor: (map['hydration_factor'] as num).toDouble(),
+      defaultVolumeOz: (map['default_volume_oz'] as num).toInt(),
     );
   }
 

@@ -29,6 +29,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     _loadFavorites();
   }
 
+  // Fetch all beverages from the database
   Future<void> _loadBeverages() async {
     try {
       final result = await dao.getAllBeverages();
@@ -48,11 +49,13 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     }
   }
 
+  // Load the user's favorite drinks
   Future<void> _loadFavorites() async {
     final provider = context.read<FavoriteDrinksProvider>();
     await provider.loadFavorites();
   }
 
+  // Filter the beverage list based on the search query
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value.trim().toLowerCase();
@@ -64,6 +67,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     });
   }
 
+  // Get the corresponding Material Icon based on the icon name string
   IconData _getIcon(String? iconName) {
     switch (iconName) {
       case 'water_drop': return Icons.water_drop;
@@ -79,81 +83,75 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
   Widget build(BuildContext context) {
     final favProvider = context.watch<FavoriteDrinksProvider>();
 
+    // Separate the filtered list into favorites and non-favorites
     final favoriteBeverages = filteredBeverages
         .where((bev) => favProvider.isFavorite(bev.name))
         .toList();
-    final nonFavoriteBeverages = filteredBeverages
-        .where((bev) => !favProvider.isFavorite(bev.name))
-        .toList();
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Drink Library')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    // DefaultTabController enables the TabBar and TabBarView to sync automatically
+    return DefaultTabController(
+      length: 2, // We have two tabs: All Drinks and Favorites
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Drink Library'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'All Drinks', icon: Icon(Icons.local_drink)),
+              Tab(text: 'Favorites', icon: Icon(Icons.star)),
+            ],
+            indicatorColor: Colors.blueAccent,
+            labelColor: Colors.blueAccent,
+            unselectedLabelColor: Colors.grey,
+          ),
+        ),
+        // A Floating Action Button replaces the old inline button for better UX
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showDrinkInput(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Custom Drink'),
+          backgroundColor: Colors.blueAccent,
+          foregroundColor: Colors.white,
+        ),
+        body: Column(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Browse available drinks',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search drinks by name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
+            // Static Search Bar at the top
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Search drinks by name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  isDense: true,
                 ),
-                isDense: true,
+                onChanged: _onSearchChanged,
               ),
-              onChanged: _onSearchChanged,
             ),
-            const SizedBox(height: 16),
-
-            // Button to add a custom drink (Integrated feature)
-            AppButton(
-              label: 'Add Custom Drink',
-              filled: false,
-              onPressed: () => _showDrinkInput(context),
-            ),
-
-            if (isLoading)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else if (beverages.isEmpty)
-              const Expanded(child: Center(child: Text('No drinks found in database')))
-            else if (filteredBeverages.isEmpty)
-              const Expanded(child: Center(child: Text('No drinks match your search')))
-            else
-              Expanded(
-                child: ListView(
-                  children: [
-                    if (favoriteBeverages.isNotEmpty) ...[
-                      _buildSectionHeader('Favorites ★'),
-                      ...favoriteBeverages.map((bev) {
-                        final favorite = favProvider.favorites
-                            .where((f) => f.beverageName == bev.name)
-                            .firstOrNull;
-                        return _buildBeverageCard(bev, favorite, favProvider);
-                      }),
-                      const SizedBox(height: 8),
-                    ],
-                    _buildSectionHeader('All Drinks'),
-                    ...nonFavoriteBeverages.map((bev) {
-                      return _buildBeverageCard(bev, null, favProvider);
-                    }),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 12),
-            AppButton(
-              label: 'Back to Home',
-              filled: false,
-              onPressed: () => Navigator.pop(context),
+            
+            // The main content area that switches based on the selected tab
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : TabBarView(
+                      children: [
+                        // First Tab: All Drinks
+                        _buildDrinkList(
+                          filteredBeverages, 
+                          favProvider, 
+                          emptyMessage: 'No drinks match your search',
+                        ),
+                        // Second Tab: Favorites Only
+                        _buildDrinkList(
+                          favoriteBeverages, 
+                          favProvider, 
+                          emptyMessage: 'No favorites yet.\nTap the star to add some!',
+                        ),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -161,26 +159,37 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Divider(color: Colors.grey[300])),
-        ],
-      ),
+  // Helper method to build the list view for either tab
+  Widget _buildDrinkList(
+    List<Beverage> drinkList, 
+    FavoriteDrinksProvider favProvider, {
+    required String emptyMessage,
+  }) {
+    if (drinkList.isEmpty) {
+      return Center(
+        child: Text(
+          emptyMessage,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 80), // Padding avoids overlap with FAB
+      itemCount: drinkList.length,
+      itemBuilder: (context, index) {
+        final bev = drinkList[index];
+        final favorite = favProvider.favorites
+            .where((f) => f.beverageName == bev.name)
+            .firstOrNull;
+            
+        return _buildBeverageCard(bev, favorite, favProvider);
+      },
     );
   }
 
+  // Builds the individual card for each beverage
   Widget _buildBeverageCard(
     Beverage beverage,
     FavoriteDrink? favorite,
@@ -215,6 +224,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     );
   }
 
+  // Builds the star icon, including a small green badge if it's set to "Quick Add"
   Widget _buildStarWithBadge({
     required bool isFavorite,
     required bool isQuickAdd,
@@ -254,6 +264,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     );
   }
 
+  // Toggles the favorite status of a beverage
   Future<void> _toggleFavorite(String beverageName) async {
     final favProvider = context.read<FavoriteDrinksProvider>();
     final added = await favProvider.toggleFavorite(beverageName);
@@ -272,6 +283,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     }
   }
 
+  // Shows the dialog to edit display name, icon, volume, and quick add status
   Future<void> _showEditDialog(Beverage beverage, FavoriteDrink? favorite) async {
     final currentVolume = (favorite?.customVolumeOz ?? beverage.defaultVolumeOz).toDouble();
     final isQuickAdd = favorite?.isQuickAdd ?? false;
@@ -537,9 +549,10 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
 }
 
 // ------------------------------------------------------------------
-// Below are external functions and widgets for the Custom Drink feature
+// External functions and widgets for the Custom Drink feature
 // ------------------------------------------------------------------
 
+// Adds the custom drink to the Supabase database
 Future<void> addDrink({
   required double size,
   required double hydFac,
@@ -560,6 +573,7 @@ Future<void> addDrink({
   });
 }
 
+// Dialog widget to input custom drink details
 class DrinkInput extends StatefulWidget {
   @override
   _AddCustomDrink createState() => _AddCustomDrink();
@@ -629,7 +643,7 @@ class _AddCustomDrink extends State<DrinkInput> {
                 }
                 return null;
               },
-            )
+            ),
           ],
         ),
       ),
