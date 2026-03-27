@@ -56,7 +56,11 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
       
-      home: const LoginScreen(), 
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          return auth.isLoggedIn ? const HomeScreen() : const LoginScreen();
+        },
+      ),
       
       routes: {
         '/login': (context) => const LoginScreen(),

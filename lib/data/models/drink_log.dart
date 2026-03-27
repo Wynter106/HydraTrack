@@ -2,7 +2,6 @@ class DrinkLog {
   final String? id;  // Supabase UUID
   final String userId;
   final String beverageName;
-  final String? brand;
   final double volumeOz;
   final double caffeineMg;
   final double hydrationContributionOz;
@@ -12,7 +11,6 @@ class DrinkLog {
     this.id,
     required this.userId,
     required this.beverageName,
-    this.brand,
     required this.volumeOz,
     required this.caffeineMg,
     required this.hydrationContributionOz,
@@ -25,7 +23,6 @@ class DrinkLog {
       id: json['id'],
       userId: json['user_id'],
       beverageName: json['beverage_name'],
-      brand: json['brand'],
       volumeOz: (json['amount_oz'] as num).toDouble(),
       caffeineMg: (json['caffeine_mg'] as num).toDouble(),
       hydrationContributionOz: (json['hydration_contribution_oz'] as num).toDouble(),
@@ -38,7 +35,6 @@ class DrinkLog {
     return {
       'user_id': userId,
       'beverage_name': beverageName,
-      'brand': brand,
       'amount_oz': volumeOz,
       'caffeine_mg': caffeineMg,
       'hydration_contribution_oz': hydrationContributionOz,
@@ -53,7 +49,6 @@ class DrinkLog {
       id: map['id']?.toString(),
       userId: '',
       beverageName: '',
-      brand: null,
       volumeOz: map['volume_oz'] as double,
       caffeineMg: 0,
       hydrationContributionOz: map['actual_hydration_oz'] as double,
