@@ -7,6 +7,7 @@ import '../../application/providers/hydration_provider.dart';
 import '../../application/providers/profile_provider.dart';
 import '../../application/providers/favorite_drinks_provider.dart'; // Added!
 import '../../data/models/favorite_drink.dart'; // Added!
+import '../../business/services/ai_analysis_service.dart';
 
 /// HomeScreen - Main screen showing hydration progress and quick add buttons
 class HomeScreen extends StatefulWidget {
@@ -18,6 +19,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final BeverageDao dao = BeverageDao();
+  String? _aiInsight;
+  bool _aiLoading = false;
 
   @override
   void initState() {
@@ -55,6 +58,82 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _fetchAiInsight() async {
+    final provider = context.read<HydrationProvider>();
+    final profileProvider = context.read<ProfileProvider>();
+
+    setState(() {
+      _aiLoading = true;
+      _aiInsight = null;
+    });
+
+    try {
+      // Weekly average (last 7 days)
+      final now = DateTime.now();
+      double weeklyTotalPercent = 0;
+      int daysWithData = 0;
+      final goal = profileProvider.dailyHydrationGoalOz.toDouble();
+
+      for (int i = 1; i <= 7; i++) {
+        final day = now.subtract(Duration(days: i));
+        final logs = provider.getLogsBetween(day, day);
+        if (logs.isNotEmpty) {
+          final dayOz = logs.fold<double>(
+              0, (sum, l) => sum + ((l['actualHydrationOz'] as double?) ?? 0));
+          weeklyTotalPercent += goal > 0 ? (dayOz / goal * 100) : 0;
+          daysWithData++;
+        }
+      }
+      final weeklyAvg = daysWithData > 0 ? weeklyTotalPercent / daysWithData : 0.0;
+
+      // Top drink today
+      final drinkCount = <String, int>{};
+      for (final log in provider.todayLogs) {
+        final name = (log['beverageName'] as String?) ?? 'Unknown';
+        drinkCount[name] = (drinkCount[name] ?? 0) + 1;
+      }
+      final topDrink = drinkCount.isEmpty
+          ? 'None'
+          : (drinkCount.entries.toList()
+                ..sort((a, b) => b.value.compareTo(a.value)))
+              .first
+              .key;
+
+      // Drinking time pattern
+      final hours = provider.todayLogs
+          .map((l) => DateTime.tryParse(l['timestamp'] as String? ?? '')?.hour)
+          .whereType<int>()
+          .toList();
+      String pattern = 'spread';
+      if (hours.isNotEmpty) {
+        final avg = hours.reduce((a, b) => a + b) / hours.length;
+        if (avg < 10) pattern = 'morning';
+        else if (avg < 14) pattern = 'midday';
+        else if (avg < 18) pattern = 'afternoon';
+        else pattern = 'evening';
+      }
+
+      final insight = await AiAnalysisService.analyzeTodayHydration(
+        currentOz: provider.hydrationCurrent,
+        goalOz: goal,
+        caffeineMg: provider.caffeineCurrent,
+        caffeineLimitMg: profileProvider.dailyCaffeineLimitMg.toDouble(),
+        logCount: provider.logCount,
+        streak: provider.currentStreak,
+        weeklyAvgPercent: weeklyAvg,
+        topDrink: topDrink,
+        drinkingPattern: pattern,
+        uniqueDrinkTypes: provider.uniqueDrinkTypesToday,
+      );
+      setState(() => _aiInsight = insight);
+    } catch (e) {
+      debugPrint('AI error: $e');
+      setState(() => _aiInsight = 'Could not load insight. Please try again.');
+    } finally {
+      setState(() => _aiLoading = false);
+    }
+  }
+
   /// Quick add drink from favorites
   Future<void> _quickAddDrink(FavoriteDrink favorite) async {
     try {
@@ -79,9 +158,12 @@ class _HomeScreenState extends State<HomeScreen> {
       await provider.addDrink(beverage, volumeOz: volumeOz);
 
       if (mounted) {
+        final profileProvider = context.read<ProfileProvider>();
+        final unit = profileProvider.preferredVolumeUnit;
+        final displayVolume = unit == 'ml' ? volumeOz * 29.5735 : volumeOz;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added ${volumeOz.toStringAsFixed(1)} oz of ${favorite.beverageName}'),
+            content: Text('Added ${displayVolume.toStringAsFixed(1)} $unit of ${favorite.beverageName}'),
             duration: const Duration(seconds: 1),
           ),
         );
@@ -107,13 +189,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final profileProvider = context.watch<ProfileProvider>();
     final favProvider = context.watch<FavoriteDrinksProvider>(); // Added!
 
-    final hydrationGoal = profileProvider.dailyHydrationGoalOz;
+    final hydrationGoal = profileProvider.dailyGoalInPreferredUnit;
     final caffeineLimit = profileProvider.dailyCaffeineLimitMg;
     final volumeUnit = profileProvider.preferredVolumeUnit;
 
+    final hydrationCurrent = volumeUnit == 'ml'
+        ? provider.hydrationCurrent * 29.5735
+        : provider.hydrationCurrent;
+
     // Calculate progress ratios
     final hydrationRatio = hydrationGoal > 0
-        ? (provider.hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
+        ? (hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
         : 0.0;
     final caffeineRatio = caffeineLimit > 0
         ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
@@ -152,8 +238,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                      '${provider.hydrationCurrent.toStringAsFixed(1)} / '
-                      '$hydrationGoal $volumeUnit'),
+                      '${hydrationCurrent.toStringAsFixed(1)} / '
+                      '${hydrationGoal.toStringAsFixed(1)} $volumeUnit'),
 
                   const SizedBox(height: 16),
 
@@ -177,6 +263,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+
+            const SizedBox(height: 24),
+
+            // ==================== AI ANALYSIS ====================
+            _buildAiCard(),
 
             const SizedBox(height: 24),
 
@@ -220,6 +311,49 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Log'),
           BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Goals'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiCard() {
+    final colors = Theme.of(context).colorScheme;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, color: colors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'AI Insight',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: colors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_aiLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_aiInsight != null)
+            Text(_aiInsight!, style: const TextStyle(fontSize: 14))
+          else
+            Text(
+              'Tap below to get a personalized hydration tip.',
+              style: TextStyle(color: colors.onSurface.withOpacity(0.6), fontSize: 14),
+            ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _aiLoading ? null : _fetchAiInsight,
+              child: const Text('Analyze My Hydration'),
+            ),
+          ),
         ],
       ),
     );
@@ -324,10 +458,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final displayName = favorite.beverageName.split(' ').first;
     final volumeOz = favorite.customVolumeOz ?? 8.0;
 
+    final profileProvider = context.read<ProfileProvider>();
+    final unit = profileProvider.preferredVolumeUnit;
+    final displayVolume = unit == 'ml' ? volumeOz * 29.5735 : volumeOz;
+
     return _buildQuickAddButton(
       icon: icon,
       label: displayName,
-      subtitle: '${volumeOz.toStringAsFixed(0)} oz',
+      subtitle: '${displayVolume.toStringAsFixed(0)} $unit',
       onTap: () => _quickAddDrink(favorite),
     );
   }

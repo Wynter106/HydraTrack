@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/providers/hydration_provider.dart';
+import '../../application/providers/profile_provider.dart';
 import '../widgets/app_card.dart';
 
 /// LogScreen - Shows today's drink history
@@ -10,7 +11,11 @@ class LogScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<HydrationProvider>(context);
+    final profileProvider = Provider.of<ProfileProvider>(context);
+    final unit = profileProvider.preferredVolumeUnit;
     final logs = provider.todayLogs;
+
+    double toDisplay(double oz) => unit == 'ml' ? oz * 29.5735 : oz;
 
     return Scaffold(
       appBar: AppBar(
@@ -43,13 +48,13 @@ class LogScreen extends StatelessWidget {
                       const Icon(Icons.water_drop, color: Colors.blue),
                       const SizedBox(height: 4),
                       Text(
-                        '${provider.hydrationCurrent.toStringAsFixed(1)} oz',
+                        '${toDisplay(provider.hydrationCurrent).toStringAsFixed(1)} $unit',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
                       ),
-                      Text('/ ${provider.hydrationGoal.toStringAsFixed(0)} oz goal'),
+                      Text('/ ${toDisplay(provider.hydrationGoal).toStringAsFixed(0)} $unit goal'),
                     ],
                   ),
                   // Caffeine total
@@ -166,8 +171,8 @@ class LogScreen extends StatelessWidget {
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Text(
-                              'Volume: ${(log['volumeOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz\n'
-                              'Hydration: +${(log['actualHydrationOz'] as double?)?.toStringAsFixed(1) ?? '?'} oz '
+                              'Volume: ${toDisplay((log['volumeOz'] as double?) ?? 0).toStringAsFixed(1)} $unit\n'
+                              'Hydration: +${toDisplay((log['actualHydrationOz'] as double?) ?? 0).toStringAsFixed(1)} $unit '
                               '(factor: ${log['hydrationFactor'] ?? '?'})\n'
                               'Caffeine: +${(log['caffeineMg'] as double?)?.toStringAsFixed(0) ?? '0'} mg'
                             ),
