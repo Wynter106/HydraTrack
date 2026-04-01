@@ -18,8 +18,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const _kNotiHourKey = 'noti_hour';
   static const _kNotiMinuteKey = 'noti_minute';
 
+  static const _kMedNotiEnabledKey = 'med_noti_enabled';
+  static const _kMedNotiHourKey = 'med_noti_hour';
+  static const _kMedNotiMinuteKey = 'med_noti_minute';
+
   bool _notificationsEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 15, minute: 30);
+
+  bool _medicationNotificationsEnabled = false;
+  TimeOfDay _medicationReminderTime = const TimeOfDay(hour: 21, minute: 0);
 
   @override
   void initState() {
@@ -33,11 +40,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final hour = prefs.getInt(_kNotiHourKey);
     final minute = prefs.getInt(_kNotiMinuteKey);
 
+    final medEnabled = prefs.getBool(_kMedNotiEnabledKey) ?? false;
+    final medHour = prefs.getInt(_kMedNotiHourKey);
+    final medMinute = prefs.getInt(_kMedNotiMinuteKey);
+
     if (!mounted) return;
     setState(() {
       _notificationsEnabled = enabled;
       if (hour != null && minute != null) {
         _reminderTime = TimeOfDay(hour: hour, minute: minute);
+      }
+      _medicationNotificationsEnabled = medEnabled;
+      if (medHour != null && medMinute != null) {
+        _medicationReminderTime = TimeOfDay(hour: medHour, minute: medMinute);
       }
     });
   }
@@ -47,6 +62,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool(_kNotiEnabledKey, _notificationsEnabled);
     await prefs.setInt(_kNotiHourKey, _reminderTime.hour);
     await prefs.setInt(_kNotiMinuteKey, _reminderTime.minute);
+
+    await prefs.setBool(_kMedNotiEnabledKey, _medicationNotificationsEnabled);
+    await prefs.setInt(_kMedNotiHourKey, _medicationReminderTime.hour);
+    await prefs.setInt(_kMedNotiMinuteKey, _medicationReminderTime.minute);
   }
 
   Future<void> _toggleNotifications(bool val) async {
@@ -87,6 +106,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Reminder time updated: ${_reminderTime.format(context)}')),
+      );
+    }
+  }
+
+  Future<void> _toggleMedicationNotifications(bool val) async {
+    setState(() => _medicationNotificationsEnabled = val);
+    await _savePrefs();
+
+    if (val) {
+      await NotificationManager.instance.scheduleDailyMedicationReminder(_medicationReminderTime);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Medication reminder scheduled: ${_medicationReminderTime.format(context)}')),
+      );
+    } else {
+      await NotificationManager.instance.cancelMedicationReminder();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medication reminder cancelled')),
+      );
+    }
+  }
+
+  Future<void> _pickMedicationReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _medicationReminderTime,
+    );
+    if (picked == null) return;
+    setState(() => _medicationReminderTime = picked);
+    await _savePrefs();
+    if (_medicationNotificationsEnabled) {
+      await NotificationManager.instance.scheduleDailyMedicationReminder(_medicationReminderTime);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Medication reminder time updated: ${_medicationReminderTime.format(context)}')),
       );
     }
   }
@@ -157,6 +212,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: Text(_reminderTime.format(context)),
                     trailing: Icon(Icons.chevron_right, color: colors.onSurface.withOpacity(0.5)),
                     onTap: _pickReminderTime,
+                  ),
+                ],
+
+                const Divider(height: 1),
+
+                SwitchListTile(
+                  secondary: Icon(Icons.medication_outlined, color: colors.primary),
+                  title: const Text('Medication reminder'),
+                  subtitle: Text('Daily at ${_medicationReminderTime.format(context)}'),
+                  value: _medicationNotificationsEnabled,
+                  onChanged: _toggleMedicationNotifications,
+                ),
+
+                if (_medicationNotificationsEnabled) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.access_time, color: colors.primary),
+                    title: const Text('Medication time'),
+                    subtitle: Text(_medicationReminderTime.format(context)),
+                    trailing: Icon(Icons.chevron_right, color: colors.onSurface.withOpacity(0.5)),
+                    onTap: _pickMedicationReminderTime,
                   ),
                 ],
               ],

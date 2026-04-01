@@ -91,6 +91,74 @@ class BeverageDao {
     return count ?? 0;
   }
 
+  Future<List<Beverage>> getAllAlcoholicBeverages() async {
+    final supabase = Supabase.instance.client;
+    try {
+      final response = await supabase
+          .from('alcohol_beverages')
+          .select()
+          .order('name', ascending: true);
+
+      return (response as List).map((map) {
+        return Beverage.fromMap({
+          'id': map['id'],
+          'name': map['name'],
+          'caffeine_per_oz': 0.0,
+          'hydration_factor': -0.5,
+          'default_volume_oz': map['serving_size_oz'] ?? 12,
+          'is_alcoholic': true,
+          'abv': map['abv'],
+          'serving_size_oz': map['serving_size_oz'],
+        });
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Beverage>> searchAlcoholicBeverages(String query) async {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    try {
+      final libResults = await supabase
+          .from('alcohol_beverages')
+          .select()
+          .ilike('name', '%$query%')
+          .order('name', ascending: true);
+
+      final libraryBevs = (libResults as List).map((map) {
+        return Beverage.fromMap({
+          'id': map['id'],
+          'name': map['name'],
+          'caffeine_per_oz': 0.0,
+          'hydration_factor': -0.5,
+          'default_volume_oz': map['serving_size_oz'] ?? 12,
+          'is_alcoholic': true,
+          'abv': map['abv'],
+          'serving_size_oz': map['serving_size_oz'],
+        });
+      }).toList();
+
+      List<Beverage> customBevs = [];
+      if (userId != null) {
+        final customResults = await supabase
+            .from('custom_beverages')
+            .select()
+            .eq('user_id', userId)
+            .eq('is_alcoholic', true)
+            .ilike('name', '%$query%');
+        customBevs = (customResults as List)
+            .map((map) => Beverage.fromMap(map))
+            .toList();
+      }
+
+      return [...customBevs, ...libraryBevs];
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// Get beverage by exact name match
   /// Use this for Quick Add buttons where we know the exact name
   Future<Beverage?> getBeverageByExactName(String name) async {

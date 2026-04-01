@@ -468,4 +468,8 @@ class HydrationProvider extends ChangeNotifier {
     }
     return count;
   }
+
+  // TODO(Wilker): Implement alcohol tracking
+  double get alcoholCurrent => 0.0;
+  void setAlcoholLimit(double limit) {}
 }

@@ -11,6 +11,62 @@ class NotificationManager {
       FlutterLocalNotificationsPlugin();
 
   static const int hydrationReminderId = 1001;
+  static const int medicationReminderId = 2001;
+
+
+
+
+
+
+/// Once per day: repeating medication reminder at the user-selected time
+Future<void> scheduleDailyMedicationReminder(TimeOfDay time) async {
+  await cancelMedicationReminder();
+
+  const androidDetails = AndroidNotificationDetails(
+    'medication_channel',
+    'Medication Reminders',
+    channelDescription: 'Reminders to take medication',
+    importance: Importance.defaultImportance,
+    priority: Priority.defaultPriority,
+  );
+  const details = NotificationDetails(android: androidDetails);
+
+  final now = tz.TZDateTime.now(tz.local);
+
+  var scheduled = tz.TZDateTime(
+    tz.local,
+    now.year,
+    now.month,
+    now.day,
+    time.hour,
+    time.minute,
+  );
+
+  if (scheduled.isBefore(now)) {
+    scheduled = scheduled.add(const Duration(days: 1));
+  }
+
+  await _plugin.zonedSchedule(
+    medicationReminderId,
+    'HydraTrack',
+    'Time to take your medication 💊',
+    scheduled,
+    details,
+    androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime,
+    matchDateTimeComponents: DateTimeComponents.time,
+  );
+}
+
+Future<void> cancelMedicationReminder() async {
+  await _plugin.cancel(medicationReminderId);
+}
+
+
+
+
+
 
   Future<void> init() async {
     // timezone init (for scheduled notifications)

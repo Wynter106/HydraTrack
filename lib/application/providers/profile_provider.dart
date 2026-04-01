@@ -94,4 +94,7 @@ class ProfileProvider extends ChangeNotifier {
       print('Error updating volume unit: $e');
     }
   }
+
+  // TODO(Wilker): Implement once alcohol limit is added to profile DB
+  double get dailyAlcoholLimit => 14.0;
 }

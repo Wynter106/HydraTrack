@@ -11,6 +11,8 @@ import 'presentation/screens/user_settings_screen.dart';
 import 'presentation/screens/weekly_stats_screen.dart';
 import 'presentation/screens/monthly_stats_screen.dart';
 import 'presentation/screens/manage_quick_add_screen.dart';
+import 'presentation/screens/alcohol_home_screen.dart';
+import 'presentation/screens/alcohol_drink_library_screen.dart';
 import 'application/providers/hydration_provider.dart';
 import 'application/providers/auth_provider.dart';
 import 'business/managers/notification_manager.dart';
@@ -75,6 +77,8 @@ class MyApp extends StatelessWidget {
         '/weekly-stats': (context) => const WeeklyStatsScreen(),
         '/monthly-stats': (context) => const MonthlyStatsScreen(),
         '/manage-quick-add': (context) => const ManageQuickAddScreen(),
+        '/alchome': (context) => const AlcoholHomeScreen(),
+        '/alclib': (context) => const AlcoholDrinkLibraryScreen(),
       },
     );
   }

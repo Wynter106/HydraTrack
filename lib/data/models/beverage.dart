@@ -9,6 +9,9 @@ class Beverage {
   final double caffeinePerOz;   // Caffeine content per oz (mg)
   final double hydrationFactor; // Hydration factor (0.0 to 1.0)
   final int defaultVolumeOz;    // Default volume in ounces (oz)
+  final bool isAlcoholic;
+  final double? abv;
+  final double? servingSizeOz;
 
   Beverage({
     this.id,
@@ -16,10 +19,11 @@ class Beverage {
     required this.caffeinePerOz,
     required this.hydrationFactor,
     required this.defaultVolumeOz,
+    this.isAlcoholic = false,
+    this.abv,
+    this.servingSizeOz,
   });
 
-  /// Converts a Map (from the DB) into a Beverage object.
-  /// e.g.: {'id': 1, 'name': 'Coffee', 'caffeine_per_oz': 0.38, 'hydration_factor': 0.75, 'default_volume_oz': 12}
   factory Beverage.fromMap(Map<String, dynamic> map) {
     return Beverage(
       id: map['id'] as int?,
@@ -27,10 +31,12 @@ class Beverage {
       caffeinePerOz: (map['caffeine_per_oz'] as num).toDouble(),
       hydrationFactor: (map['hydration_factor'] as num).toDouble(),
       defaultVolumeOz: (map['default_volume_oz'] as num).toInt(),
+      isAlcoholic: map['is_alcoholic'] as bool? ?? false,
+      abv: (map['abv'] as num?)?.toDouble(),
+      servingSizeOz: (map['serving_size_oz'] as num?)?.toDouble(),
     );
   }
 
-  /// Converts the Beverage object into a Map suitable for DB storage.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -38,6 +44,15 @@ class Beverage {
       'caffeine_per_oz': caffeinePerOz,
       'hydration_factor': hydrationFactor,
       'default_volume_oz': defaultVolumeOz,
+      'is_alcoholic': isAlcoholic,
+      'abv': abv,
+      'serving_size_oz': servingSizeOz,
     };
+  }
+
+  double standardDrinks({double? volumeOz}) {
+    if (!isAlcoholic || abv == null) return 0.0;
+    final vol = volumeOz ?? defaultVolumeOz.toDouble();
+    return (vol * (abv! / 100)) / 0.6;
   }
 }

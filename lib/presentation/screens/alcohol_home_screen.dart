@@ -7,24 +7,17 @@ import '../../application/providers/hydration_provider.dart';
 import '../../application/providers/profile_provider.dart';
 import '../../application/providers/favorite_drinks_provider.dart'; // Added!
 import '../../data/models/favorite_drink.dart'; // Added!
-import '../../business/services/ai_analysis_service.dart';
-import '../../business/services/connectivity_service.dart';
-import '../widgets/offline_banner.dart';
 
 /// HomeScreen - Main screen showing hydration progress and quick add buttons
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class AlcoholHomeScreen extends StatefulWidget {
+  const AlcoholHomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<AlcoholHomeScreen> createState() => _AlcoholHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final BeverageDao dao = BeverageDao();
-  String? _aiInsight;
-  bool _aiLoading = false;
-
-  VoidCallback? _connectivityListener;
+class _AlcoholHomeScreenState extends State<AlcoholHomeScreen> {
+  final BeverageDao dao = BeverageDao();                     //May need to change depending on how alcohol backend is implemented
 
   @override
   void initState() {
@@ -32,24 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final profileProvider = context.read<ProfileProvider>();
-      final hydrationProvider = context.read<HydrationProvider>();
+      final hydrationProvider = context.read<HydrationProvider>();             //Now has alcohol tracking functions
       final favProvider = context.read<FavoriteDrinksProvider>(); // Added!
-      final connectivity = context.read<ConnectivityService>();
-
-      // 온라인 복귀 시 대기 중인 로그 자동 sync
-      _connectivityListener = () {
-        if (connectivity.isOnline) {
-          context.read<HydrationProvider>().syncPendingLogs();
-        }
-      };
-      connectivity.addListener(_connectivityListener!);
 
       // Load profile
       await profileProvider.loadProfile();
 
       // Set goals
-      hydrationProvider.setHydrationGoal(profileProvider.dailyHydrationGoalOz.toDouble());
-      hydrationProvider.setCaffeineLimit(profileProvider.dailyCaffeineLimitMg.toDouble());
+      hydrationProvider.setAlcoholLimit(profileProvider.dailyAlcoholLimit);         //Made to only grab alcohol limit
 
       // Load today's logs
       await hydrationProvider.loadTodayLogs();
@@ -69,91 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('✅ Loaded ${favProvider.favorites.length} favorites');
       debugPrint('✅ Quick Add count: ${favProvider.quickAddFavorites.length}');
     });
-  }
-
-  @override
-  void dispose() {
-    // Remove connectivity listener to prevent _dependents.isEmpty assertion crash
-    if (_connectivityListener != null) {
-      context.read<ConnectivityService>().removeListener(_connectivityListener!);
-    }
-    super.dispose();
-  }
-
-  Future<void> _fetchAiInsight() async {
-    final provider = context.read<HydrationProvider>();
-    final profileProvider = context.read<ProfileProvider>();
-
-    setState(() {
-      _aiLoading = true;
-      _aiInsight = null;
-    });
-
-    try {
-      // Weekly average (last 7 days)
-      final now = DateTime.now();
-      double weeklyTotalPercent = 0;
-      int daysWithData = 0;
-      final goal = profileProvider.dailyHydrationGoalOz.toDouble();
-
-      for (int i = 1; i <= 7; i++) {
-        final day = now.subtract(Duration(days: i));
-        final logs = provider.getLogsBetween(day, day);
-        if (logs.isNotEmpty) {
-          final dayOz = logs.fold<double>(
-              0, (sum, l) => sum + ((l['actualHydrationOz'] as double?) ?? 0));
-          weeklyTotalPercent += goal > 0 ? (dayOz / goal * 100) : 0;
-          daysWithData++;
-        }
-      }
-      final weeklyAvg = daysWithData > 0 ? weeklyTotalPercent / daysWithData : 0.0;
-
-      // Top drink today
-      final drinkCount = <String, int>{};
-      for (final log in provider.todayLogs) {
-        final name = (log['beverageName'] as String?) ?? 'Unknown';
-        drinkCount[name] = (drinkCount[name] ?? 0) + 1;
-      }
-      final topDrink = drinkCount.isEmpty
-          ? 'None'
-          : (drinkCount.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value)))
-              .first
-              .key;
-
-      // Drinking time pattern
-      final hours = provider.todayLogs
-          .map((l) => DateTime.tryParse(l['timestamp'] as String? ?? '')?.hour)
-          .whereType<int>()
-          .toList();
-      String pattern = 'spread';
-      if (hours.isNotEmpty) {
-        final avg = hours.reduce((a, b) => a + b) / hours.length;
-        if (avg < 10) pattern = 'morning';
-        else if (avg < 14) pattern = 'midday';
-        else if (avg < 18) pattern = 'afternoon';
-        else pattern = 'evening';
-      }
-
-      final insight = await AiAnalysisService.analyzeTodayHydration(
-        currentOz: provider.hydrationCurrent,
-        goalOz: goal,
-        caffeineMg: provider.caffeineCurrent,
-        caffeineLimitMg: profileProvider.dailyCaffeineLimitMg.toDouble(),
-        logCount: provider.logCount,
-        streak: provider.currentStreak,
-        weeklyAvgPercent: weeklyAvg,
-        topDrink: topDrink,
-        drinkingPattern: pattern,
-        uniqueDrinkTypes: provider.uniqueDrinkTypesToday,
-      );
-      setState(() => _aiInsight = insight);
-    } catch (e) {
-      debugPrint('AI error: $e');
-      setState(() => _aiInsight = 'Could not load insight. Please try again.');
-    } finally {
-      setState(() => _aiLoading = false);
-    }
   }
 
   /// Quick add drink from favorites
@@ -180,12 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
       await provider.addDrink(beverage, volumeOz: volumeOz);
 
       if (mounted) {
-        final profileProvider = context.read<ProfileProvider>();
-        final unit = profileProvider.preferredVolumeUnit;
-        final displayVolume = unit == 'ml' ? volumeOz * 29.5735 : volumeOz;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added ${displayVolume.toStringAsFixed(1)} $unit of ${favorite.beverageName}'),
+            content: Text('Added ${volumeOz.toStringAsFixed(1)} oz of ${favorite.beverageName}'),
             duration: const Duration(seconds: 1),
           ),
         );
@@ -196,8 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Opens DrinkLibrary and handles selected beverage
-  Future<void> _openDrinkLibrary() async {
-    final selectedBeverage = await Navigator.pushNamed(context, '/library');
+  Future<void> _openAlcoholDrinkLibrary() async {                                //Loads alcohol drink library instead of drink library
+    final selectedBeverage = await Navigator.pushNamed(context, '/alclib');
 
     if (selectedBeverage != null && selectedBeverage is Beverage) {
       final provider = context.read<HydrationProvider>();
@@ -211,30 +106,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final profileProvider = context.watch<ProfileProvider>();
     final favProvider = context.watch<FavoriteDrinksProvider>(); // Added!
 
-    final hydrationGoal = profileProvider.dailyGoalInPreferredUnit;
-    final caffeineLimit = profileProvider.dailyCaffeineLimitMg;
+    final alcoholLimit = profileProvider.dailyAlcoholLimit;
     final volumeUnit = profileProvider.preferredVolumeUnit;
 
-    final hydrationCurrent = volumeUnit == 'ml'
-        ? provider.hydrationCurrent * 29.5735
-        : provider.hydrationCurrent;
-
     // Calculate progress ratios
-    final hydrationRatio = hydrationGoal > 0
-        ? (hydrationCurrent / hydrationGoal).clamp(0.0, 1.0)
-        : 0.0;
-    final caffeineRatio = caffeineLimit > 0
-        ? (provider.caffeineCurrent / caffeineLimit).clamp(0.0, 1.0)
+    final alcoholRatio = alcoholLimit > 0                                //Only looks at alcohol levels
+        ? (provider.alcoholCurrent / alcoholLimit).clamp(0.0, 1.0)
         : 0.0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('HydraTrack'),
       ),
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(child: SingleChildScrollView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -250,49 +134,27 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Hydration progress bar
+                  // Alcohol progress bar
                   const Text(
-                    'Hydration',
+                    'Alcohol',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   LinearProgressIndicator(
-                    value: hydrationRatio,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                      '${hydrationCurrent.toStringAsFixed(1)} / '
-                      '${hydrationGoal.toStringAsFixed(1)} $volumeUnit'),
-
-                  const SizedBox(height: 16),
-
-                  // Caffeine progress bar
-                  const Text(
-                    'Caffeine',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: caffeineRatio,
+                    value: alcoholRatio,
                     backgroundColor: Colors.grey[300],
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      provider.isNearCaffeineLimit ? Colors.red : Colors.orange,
+                       //Changed to check whether it is near the alcohol limit, hard coded calculation rather than provider function
+                      (provider.alcoholCurrent / alcoholLimit >= 0.8) ? Colors.red : Colors.orange,       
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                      '${provider.caffeineCurrent.toStringAsFixed(0)} / '
-                      '$caffeineLimit mg'),
+                      '${provider.alcoholCurrent.toStringAsFixed(0)} / '
+                      '$alcoholLimit mg'),
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // ==================== AI ANALYSIS ====================
-            _buildAiCard(),
 
             const SizedBox(height: 24),
 
@@ -310,17 +172,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      )),
-        ],
       ),
 
       // ==================== BOTTOM NAVIGATION ====================
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
+        currentIndex: 3,
         onTap: (index) {
           switch (index) {
             case 0:
+              Navigator.pushNamed(context, '/home');
               break;
             case 1:
               Navigator.pushNamed(context, '/log');
@@ -329,8 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pushNamed(context, '/goals');
               break;
             case 3:
-              Navigator.pushNamed(context, '/alchome');
-              break;
+              break; // already here
             case 4:
               Navigator.pushNamed(context, '/settings');
               break;
@@ -342,49 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Goals'),
           BottomNavigationBarItem(icon: Icon(Icons.local_bar), label: 'Alcohol'),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAiCard() {
-    final colors = Theme.of(context).colorScheme;
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.auto_awesome, color: colors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'AI Insight',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: colors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_aiLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (_aiInsight != null)
-            Text(_aiInsight!, style: const TextStyle(fontSize: 14))
-          else
-            Text(
-              'Tap below to get a personalized hydration tip.',
-              style: TextStyle(color: colors.onSurface.withOpacity(0.6), fontSize: 14),
-            ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _aiLoading ? null : _fetchAiInsight,
-              child: const Text('Analyze My Hydration'),
-            ),
-          ),
         ],
       ),
     );
@@ -411,10 +228,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton.icon(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/manage-quick-add');
+                  Navigator.pushNamed(context, '/alclib');          //Goes to alcohol library rather than library
                 },
-                icon: const Icon(Icons.tune, size: 16),
-                label: const Text('Manage'),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Edit'),
               ),
             ],
           ),
@@ -434,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/library');
+                        Navigator.pushNamed(context, '/alclib');     //Goes to alcohol library rather than library
                       },
                       icon: const Icon(Icons.star),
                       label: const Text('Add Favorites'),
@@ -461,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return _buildQuickAddButton(
                     icon: Icons.add,
                     label: 'More',
-                    onTap: _openDrinkLibrary,
+                    onTap: _openAlcoholDrinkLibrary,
                     isHighlighted: true,
                   );
                 }
@@ -477,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Build favorite quick add button
-  Widget _buildFavoriteButton(FavoriteDrink favorite) {
+  Widget _buildFavoriteButton(FavoriteDrink favorite) {        //Change to have alcohol images
     // Icon mapping
     IconData icon = Icons.local_drink;
     if (favorite.customIcon == 'water_drop') icon = Icons.water_drop;
@@ -485,18 +302,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (favorite.customIcon == 'emoji_food_beverage') icon = Icons.emoji_food_beverage;
     if (favorite.customIcon == 'bolt') icon = Icons.bolt;
 
-    // Get first word of effective name (uses displayName if set, else beverageName)
-    final displayName = favorite.effectiveName.split(' ').first;
+    // Get first word of beverage name
+    final displayName = favorite.beverageName.split(' ').first;
     final volumeOz = favorite.customVolumeOz ?? 8.0;
-
-    final profileProvider = context.read<ProfileProvider>();
-    final unit = profileProvider.preferredVolumeUnit;
-    final displayVolume = unit == 'ml' ? volumeOz * 29.5735 : volumeOz;
 
     return _buildQuickAddButton(
       icon: icon,
       label: displayName,
-      subtitle: '${displayVolume.toStringAsFixed(0)} $unit',
+      subtitle: '${volumeOz.toStringAsFixed(0)} oz',
       onTap: () => _quickAddDrink(favorite),
     );
   }
