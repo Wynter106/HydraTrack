@@ -160,7 +160,7 @@ class FavoriteDrinksProvider extends ChangeNotifier {
   
   // ==================== UPDATE ====================
   
-  /// Update favorite's icon and/or volume
+  /// Update favorite's display name, icon, and/or volume
   Future<void> updateFavorite({
     required String id,
     String? displayName,
@@ -175,16 +175,33 @@ class FavoriteDrinksProvider extends ChangeNotifier {
       if (displayName != null) updates['display_name'] = displayName;
       if (customIcon != null) updates['custom_icon'] = customIcon;
       if (customVolumeOz != null) updates['custom_volume_oz'] = customVolumeOz;
-      
+
       // Update in Supabase
       await _supabase
           .from('favorite_drinks')
           .update(updates)
           .eq('id', id);
-      
-      // Reload to sync
-      await loadFavorites();
-      
+
+      // Update local state directly (avoid calling loadFavorites() which fires
+      // notifyListeners() twice and can crash dialogs still open in the tree)
+      final index = _favorites.indexWhere((fav) => fav.id == id);
+      if (index != -1) {
+        final current = _favorites[index];
+        _favorites[index] = FavoriteDrink(
+          id: current.id,
+          userId: current.userId,
+          beverageName: current.beverageName,
+          displayName: displayName ?? current.displayName,
+          customIcon: customIcon ?? current.customIcon,
+          customVolumeOz: customVolumeOz ?? current.customVolumeOz,
+          displayOrder: current.displayOrder,
+          isQuickAdd: current.isQuickAdd,
+          createdAt: current.createdAt,
+          updatedAt: DateTime.now(),
+        );
+      }
+
+      notifyListeners();
       debugPrint('✅ Updated favorite: $id');
     } catch (e) {
       debugPrint('❌ Error updating favorite: $e');

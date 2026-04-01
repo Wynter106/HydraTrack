@@ -94,14 +94,14 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Drink Library'),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
               Tab(text: 'All Drinks', icon: Icon(Icons.local_drink)),
               Tab(text: 'Favorites', icon: Icon(Icons.star)),
             ],
-            indicatorColor: Colors.blueAccent,
-            labelColor: Colors.blueAccent,
-            unselectedLabelColor: Colors.grey,
+            indicatorColor: Theme.of(context).colorScheme.primary,
+            labelColor: Theme.of(context).colorScheme.primary,
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
         // A Floating Action Button replaces the old inline button for better UX
@@ -125,7 +125,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
                   isDense: true,
                 ),
                 onChanged: _onSearchChanged,
@@ -404,12 +403,13 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: Theme.of(dialogContext).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.coffee, size: 20, color: Colors.brown),
+                          Icon(Icons.coffee, size: 20,
+                              color: Theme.of(dialogContext).colorScheme.primary),
                           const SizedBox(width: 8),
                           Text(
                             'Caffeine: ${calculatedCaffeine.toStringAsFixed(0)} mg',
@@ -454,9 +454,15 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                   onPressed: () async {
                     final vol = double.tryParse(volumeController.text);
                     if (vol == null || vol <= 0) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Please enter a valid volume')),
                       );
+                      return;
+                    }
+
+                    // Not a favorite — nothing to save; just close
+                    if (favorite == null) {
+                      Navigator.pop(dialogContext);
                       return;
                     }
 
@@ -464,36 +470,38 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                         ? null
                         : displayNameController.text.trim();
 
-                    final favProvider = dialogContext.read<FavoriteDrinksProvider>();
+                    // Capture values before closing dialog
+                    final capturedFavoriteId = favorite.id;
+                    final capturedIcon = selectedIcon;
+                    final capturedQuickAdd = tempQuickAdd;
+                    final capturedIsQuickAdd = isQuickAdd;
 
-                    if (favorite != null) {
-                      await favProvider.updateFavorite(
-                        id: favorite.id,
-                        displayName: newDisplayName,
-                        customIcon: selectedIcon,
-                        customVolumeOz: vol,
-                      );
+                    // Close dialog FIRST before any async work to prevent
+                    // _dependents.isEmpty assertion crash from notifyListeners()
+                    // firing while the dialog context is still in the widget tree
+                    Navigator.pop(dialogContext);
 
-                      if (tempQuickAdd != isQuickAdd) {
-                        await favProvider.toggleQuickAdd(favorite.id);
-                      }
-                    } else {
-                      await favProvider.addFavorite(
-                        beverageName: beverage.name,
-                        displayName: newDisplayName,
-                        customIcon: selectedIcon,
-                        customVolumeOz: vol,
-                        isQuickAdd: false,
-                      );
+                    final favProvider = context.read<FavoriteDrinksProvider>();
+
+                    await favProvider.updateFavorite(
+                      id: capturedFavoriteId,
+                      displayName: newDisplayName,
+                      customIcon: capturedIcon,
+                      customVolumeOz: vol,
+                    );
+
+                    if (capturedQuickAdd != capturedIsQuickAdd) {
+                      await favProvider.toggleQuickAdd(capturedFavoriteId);
                     }
 
-                    Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(
-                        content: Text('${beverage.name} updated'),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${beverage.name} updated'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
                   },
                   child: const Text('Save'),
                 ),
@@ -606,7 +614,7 @@ class _AddCustomDrink extends State<DrinkInput> {
               controller: _nameController,
               decoration: const InputDecoration(hintText: "Drink name"),
               validator: (value) {
-                if (value == null || value.isEmpty) {
+                if (value == null || value.trim().isEmpty) {
                   return "Please enter a drink name";
                 }
                 return null;
@@ -617,14 +625,12 @@ class _AddCustomDrink extends State<DrinkInput> {
               decoration: const InputDecoration(hintText: "Drink size (oz)"),
               keyboardType: TextInputType.number,
               validator: (value) {
-                if (value == null || value.isEmpty) {
+                if (value == null || value.trim().isEmpty) {
                   return "Please enter a drink size";
-                } else {
-                  double? size = double.tryParse(value);
-                  if (size == null) {
-                    return "Please enter a number";
-                  }
                 }
+                final size = double.tryParse(value);
+                if (size == null) return "Please enter a number";
+                if (size <= 0) return "Size must be greater than 0";
                 return null;
               },
             ),
@@ -633,14 +639,12 @@ class _AddCustomDrink extends State<DrinkInput> {
               decoration: const InputDecoration(hintText: "Caffeine content (mg)"),
               keyboardType: TextInputType.number,
               validator: (value) {
-                if (value == null || value.isEmpty) {
+                if (value == null || value.trim().isEmpty) {
                   return "Please enter a caffeine amount";
-                } else {
-                  double? caff = double.tryParse(value);
-                  if (caff == null) {
-                    return "Please enter a number";
-                  }
                 }
+                final caff = double.tryParse(value);
+                if (caff == null) return "Please enter a number";
+                if (caff < 0) return "Caffeine cannot be negative";
                 return null;
               },
             ),
@@ -662,7 +666,7 @@ class _AddCustomDrink extends State<DrinkInput> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               Navigator.of(context).pop({
-                'name': _nameController.text,
+                'name': _nameController.text.trim(),
                 'size': double.parse(_sizeController.text),
                 'caff': double.parse(_caffeineController.text)
               });

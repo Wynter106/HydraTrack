@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
@@ -30,33 +31,49 @@ class ProfileProvider extends ChangeNotifier {
     return '$_dailyHydrationGoalOz oz';
   }
   
+  static const _kGoalKey = 'cached_goal_oz';
+  static const _kCaffeineKey = 'cached_caffeine_mg';
+  static const _kUnitKey = 'cached_volume_unit';
+
+  Future<void> _saveToCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kGoalKey, _dailyHydrationGoalOz);
+    await prefs.setInt(_kCaffeineKey, _dailyCaffeineLimitMg);
+    await prefs.setString(_kUnitKey, _preferredVolumeUnit);
+  }
+
+  Future<void> loadFromCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    _dailyHydrationGoalOz = prefs.getInt(_kGoalKey) ?? 67;
+    _dailyCaffeineLimitMg = prefs.getInt(_kCaffeineKey) ?? 400;
+    _preferredVolumeUnit = prefs.getString(_kUnitKey) ?? 'oz';
+    notifyListeners();
+  }
+
   Future<void> loadProfile() async {
     final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
-      print('No user logged in');
-      return;
-    }
-    
+    if (userId == null) return;
+
     _loading = true;
     notifyListeners();
-    
+
     try {
       final profile = await _supabase
           .from('profiles')
           .select('daily_hydration_goal_oz, daily_caffeine_limit_mg, preferred_volume_unit')
           .eq('id', userId)
           .single();
-      
+
       _dailyHydrationGoalOz = profile['daily_hydration_goal_oz'] ?? 67;
       _dailyCaffeineLimitMg = profile['daily_caffeine_limit_mg'] ?? 400;
       _preferredVolumeUnit = profile['preferred_volume_unit'] ?? 'oz';
-      
-      print('Profile loaded: goal=$_dailyHydrationGoalOz oz, caffeine=$_dailyCaffeineLimitMg mg');
-      
+
+      await _saveToCache(); // ← 성공하면 캐시 저장
     } catch (e) {
-      print('Error loading profile: $e');
+      debugPrint('Offline or error — loading profile from cache: $e');
+      await loadFromCache(); // ← 실패하면 캐시에서 로드
     }
-    
+
     _loading = false;
     notifyListeners();
   }

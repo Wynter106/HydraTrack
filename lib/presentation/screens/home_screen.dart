@@ -8,6 +8,8 @@ import '../../application/providers/profile_provider.dart';
 import '../../application/providers/favorite_drinks_provider.dart'; // Added!
 import '../../data/models/favorite_drink.dart'; // Added!
 import '../../business/services/ai_analysis_service.dart';
+import '../../business/services/connectivity_service.dart';
+import '../widgets/offline_banner.dart';
 
 /// HomeScreen - Main screen showing hydration progress and quick add buttons
 class HomeScreen extends StatefulWidget {
@@ -22,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _aiInsight;
   bool _aiLoading = false;
 
+  VoidCallback? _connectivityListener;
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +34,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final profileProvider = context.read<ProfileProvider>();
       final hydrationProvider = context.read<HydrationProvider>();
       final favProvider = context.read<FavoriteDrinksProvider>(); // Added!
+      final connectivity = context.read<ConnectivityService>();
+
+      // 온라인 복귀 시 대기 중인 로그 자동 sync
+      _connectivityListener = () {
+        if (connectivity.isOnline) {
+          context.read<HydrationProvider>().syncPendingLogs();
+        }
+      };
+      connectivity.addListener(_connectivityListener!);
 
       // Load profile
       await profileProvider.loadProfile();
@@ -56,6 +69,15 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('✅ Loaded ${favProvider.favorites.length} favorites');
       debugPrint('✅ Quick Add count: ${favProvider.quickAddFavorites.length}');
     });
+  }
+
+  @override
+  void dispose() {
+    // Remove connectivity listener to prevent _dependents.isEmpty assertion crash
+    if (_connectivityListener != null) {
+      context.read<ConnectivityService>().removeListener(_connectivityListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _fetchAiInsight() async {
@@ -209,7 +231,10 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('HydraTrack'),
       ),
-      body: SingleChildScrollView(
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -285,6 +310,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      )),
+        ],
       ),
 
       // ==================== BOTTOM NAVIGATION ====================
@@ -380,10 +407,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton.icon(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/library');
+                  Navigator.pushNamed(context, '/manage-quick-add');
                 },
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text('Edit'),
+                icon: const Icon(Icons.tune, size: 16),
+                label: const Text('Manage'),
               ),
             ],
           ),
@@ -454,8 +481,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (favorite.customIcon == 'emoji_food_beverage') icon = Icons.emoji_food_beverage;
     if (favorite.customIcon == 'bolt') icon = Icons.bolt;
 
-    // Get first word of beverage name
-    final displayName = favorite.beverageName.split(' ').first;
+    // Get first word of effective name (uses displayName if set, else beverageName)
+    final displayName = favorite.effectiveName.split(' ').first;
     final volumeOz = favorite.customVolumeOz ?? 8.0;
 
     final profileProvider = context.read<ProfileProvider>();

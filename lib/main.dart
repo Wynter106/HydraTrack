@@ -10,12 +10,14 @@ import 'presentation/screens/user_goals_screen.dart';
 import 'presentation/screens/user_settings_screen.dart';
 import 'presentation/screens/weekly_stats_screen.dart';
 import 'presentation/screens/monthly_stats_screen.dart';
+import 'presentation/screens/manage_quick_add_screen.dart';
 import 'application/providers/hydration_provider.dart';
 import 'application/providers/auth_provider.dart';
 import 'business/managers/notification_manager.dart';
 import 'application/providers/profile_provider.dart';
 import 'application/providers/favorite_drinks_provider.dart';
 import 'application/providers/theme_provider.dart';
+import 'business/services/connectivity_service.dart';
 
 
 Future<void> main() async {
@@ -37,6 +39,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => FavoriteDrinksProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectivityService()),
       ],
       child: const MyApp(),
     ),
@@ -71,6 +74,7 @@ class MyApp extends StatelessWidget {
         '/goals': (context) => const UserGoalsScreen(),
         '/weekly-stats': (context) => const WeeklyStatsScreen(),
         '/monthly-stats': (context) => const MonthlyStatsScreen(),
+        '/manage-quick-add': (context) => const ManageQuickAddScreen(),
       },
     );
   }

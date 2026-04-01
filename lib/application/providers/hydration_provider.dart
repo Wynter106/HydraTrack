@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/beverage.dart';
 import '../../business/calculators/hydration_calculator.dart';
 import '../../business/calculators/caffeine_tracker.dart';
@@ -140,11 +142,17 @@ class HydrationProvider extends ChangeNotifier {
             })
             .select()
             .single();
-        
+
         supabaseId = response['id'] as String?;
-        
       } catch (e) {
-        debugPrint('Error saving to Supabase: $e');
+        debugPrint('Offline — saving drink to local queue: $e');
+        await _saveToLocalQueue({
+          'beverage_name': beverage.name,
+          'amount_oz': volume,
+          'caffeine_mg': caffeine.round(),
+          'hydration_contribution_oz': actualHydration,
+          'logged_at': DateTime.now().toUtc().toIso8601String(),
+        });
       }
     }
     
@@ -242,6 +250,52 @@ class HydrationProvider extends ChangeNotifier {
     notifyListeners();
   }
   
+  // ===== OFFLINE QUEUE =====
+
+  static const _kPendingLogsKey = 'pending_logs';
+
+  Future<void> _saveToLocalQueue(Map<String, dynamic> log) async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getStringList(_kPendingLogsKey) ?? [];
+    existing.add(jsonEncode(log));
+    await prefs.setStringList(_kPendingLogsKey, existing);
+    debugPrint('📦 Saved to local queue (${existing.length} pending)');
+  }
+
+  Future<void> syncPendingLogs() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final pending = prefs.getStringList(_kPendingLogsKey) ?? [];
+    if (pending.isEmpty) return;
+
+    debugPrint('🔄 Syncing ${pending.length} pending logs...');
+    final synced = <String>[];
+
+    for (final jsonStr in pending) {
+      try {
+        final log = Map<String, dynamic>.from(jsonDecode(jsonStr) as Map);
+        await _supabase.from('beverage_logs').insert({...log, 'user_id': userId});
+        synced.add(jsonStr);
+      } catch (e) {
+        debugPrint('Sync failed, will retry later: $e');
+        break;
+      }
+    }
+
+    final remaining = pending.where((s) => !synced.contains(s)).toList();
+    await prefs.setStringList(_kPendingLogsKey, remaining);
+    debugPrint('✅ Synced ${synced.length} logs, ${remaining.length} remaining');
+
+    if (synced.isNotEmpty) notifyListeners();
+  }
+
+  int get pendingLogCount {
+    // Sync check from SharedPreferences is async — use this for UI indication
+    return 0; // Updated after async check
+  }
+
   void setHydrationGoal(double goal) {
     if (goal > 0) {
       _hydrationGoal = goal;
