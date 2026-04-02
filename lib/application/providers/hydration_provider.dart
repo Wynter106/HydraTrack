@@ -30,6 +30,12 @@ class HydrationProvider extends ChangeNotifier {
   double _lifetimeOunces = 0;
   double get lifetimeOunces => _lifetimeOunces;
 
+  double _alcoholCurrent = 0;
+  double get alcoholCurrent => _alcoholCurrent;
+
+  double _alcoholLimit = 2.0;
+  double get alcoholLimit => _alcoholLimit;
+
   int _lifetimeDrinkCount = 0;
   int get lifetimeDrinkCount => _lifetimeDrinkCount;
 
@@ -86,9 +92,12 @@ class HydrationProvider extends ChangeNotifier {
         final hydration = (json['hydration_contribution_oz'] as num?)?.toDouble() ?? 0;
         final caffeine = (json['caffeine_mg'] as num?)?.toDouble() ?? 0;
         final volume = (json['amount_oz'] as num?)?.toDouble() ?? 0;
+        final isAlcoholic   = json['is_alcoholic'] as bool? ?? false;       // ← add
+        final standardDrinks = (json['standard_drinks'] as num?)?.toDouble() ?? 0;
         
         _hydrationCurrent += hydration;
         _caffeineCurrent += caffeine;
+        if (isAlcoholic) _alcoholCurrent += standardDrinks;
         
         final logEntry = {
           'id': json['id'],
@@ -98,6 +107,8 @@ class HydrationProvider extends ChangeNotifier {
           'actualHydrationOz': hydration,
           'caffeineMg': caffeine,
           'hydrationFactor': volume > 0 ? hydration / volume : 0,
+          'isAlcoholic': isAlcoholic,
+          'standardDrinks': standardDrinks,
           'timestamp': json['logged_at'],
         };
         
@@ -114,74 +125,85 @@ class HydrationProvider extends ChangeNotifier {
   
   /// Add a drink
   Future<Map<String, double>> addDrink(Beverage beverage, {double? volumeOz}) async {
-    final volume = volumeOz ?? beverage.defaultVolumeOz.toDouble();
-    
-    final actualHydration = HydrationCalculator.calculateFromBeverage(
-      beverage, 
-      volumeOz: volume,
-    );
-    final caffeine = CaffeineTracker.calculateFromBeverage(
-      beverage, 
-      volumeOz: volume,
-    );
-    
-    final userId = _supabase.auth.currentUser?.id;
-    String? supabaseId;
-    
-    if (userId != null) {
-      try {
-        final response = await _supabase
-            .from('beverage_logs')
-            .insert({
-              'user_id': userId,
-              'beverage_name': beverage.name,
-              'amount_oz': volume,
-              'caffeine_mg': caffeine.round(),
-              'hydration_contribution_oz': actualHydration,
-              'logged_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .select()
-            .single();
+  final volume = volumeOz ?? beverage.defaultVolumeOz.toDouble();
 
-        supabaseId = response['id'] as String?;
-      } catch (e) {
-        debugPrint('Offline — saving drink to local queue: $e');
-        await _saveToLocalQueue({
-          'beverage_name': beverage.name,
-          'amount_oz': volume,
-          'caffeine_mg': caffeine.round(),
-          'hydration_contribution_oz': actualHydration,
-          'logged_at': DateTime.now().toUtc().toIso8601String(),
-        });
-      }
+  final actualHydration = HydrationCalculator.calculateFromBeverage(beverage, volumeOz: volume);
+  final caffeine = CaffeineTracker.calculateFromBeverage(beverage, volumeOz: volume);
+
+  
+  final isAlcoholic = beverage.isAlcoholic;
+  final abv = beverage.abv ?? 0.0;
+  final standardDrinks = isAlcoholic ? (volume * (abv / 100)) / 0.6 : 0.0;
+ 
+
+  final userId = _supabase.auth.currentUser?.id;
+  String? supabaseId;
+
+  if (userId != null) {
+    try {
+      final response = await _supabase
+          .from('beverage_logs')
+          .insert({
+            'user_id': userId,
+            'beverage_name': beverage.name,
+            'amount_oz': volume,
+            'caffeine_mg': caffeine.round(),
+            'hydration_contribution_oz': actualHydration,
+            'is_alcoholic': isAlcoholic,
+            'abv': isAlcoholic ? abv : null,               
+            'standard_drinks': isAlcoholic ? standardDrinks : null,
+            'alcohol_source': isAlcoholic ? 'library' : null, 
+            'logged_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .select()
+          .single();
+
+      supabaseId = response['id'] as String?;
+    } catch (e) {
+      debugPrint('Offline — saving drink to local queue: $e');
+      await _saveToLocalQueue({
+        'beverage_name': beverage.name,
+        'amount_oz': volume,
+        'caffeine_mg': caffeine.round(),
+        'hydration_contribution_oz': actualHydration,
+        'is_alcoholic': isAlcoholic,
+        'abv': isAlcoholic ? abv : null,
+        'standard_drinks': isAlcoholic ? standardDrinks : null,
+        'logged_at': DateTime.now().toUtc().toIso8601String(),
+      });
     }
-    
-    final logEntry = {
-      'id': supabaseId,
-      'beverageId': beverage.id ?? 0,
-      'beverageName': beverage.name,
-      'volumeOz': volume,
-      'actualHydrationOz': actualHydration,
-      'caffeineMg': caffeine,
-      'hydrationFactor': beverage.hydrationFactor,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-    
-    _hydrationCurrent += actualHydration;
-    _caffeineCurrent += caffeine;
-    _lifetimeOunces += actualHydration;
-    _lifetimeDrinkCount++;
-    
-    _todayLogs.add(logEntry);
-    _allLogs.add(logEntry);
-
-    notifyListeners();
-    
-    return {
-      'hydration': actualHydration,
-      'caffeine': caffeine,
-    };
   }
+
+  final logEntry = {
+    'id': supabaseId,
+    'beverageId': beverage.id ?? 0,
+    'beverageName': beverage.name,
+    'volumeOz': volume,
+    'actualHydrationOz': actualHydration,
+    'caffeineMg': caffeine,
+    'hydrationFactor': beverage.hydrationFactor,
+    'isAlcoholic': isAlcoholic,  
+    'standardDrinks': standardDrinks,  
+    'timestamp': DateTime.now().toIso8601String(),
+  };
+
+  _hydrationCurrent += actualHydration;
+  _caffeineCurrent  += caffeine;
+  if (isAlcoholic) _alcoholCurrent += standardDrinks;  
+  _lifetimeOunces += actualHydration;
+  _lifetimeDrinkCount++;
+
+  _todayLogs.add(logEntry);
+  _allLogs.add(logEntry);
+
+  notifyListeners();
+
+  return {
+    'hydration': actualHydration,
+    'caffeine': caffeine,
+    'standardDrinks': standardDrinks, 
+  };
+}
   
   /// Remove a drink
   Future<void> removeDrink(int index) async {
@@ -230,6 +252,7 @@ class HydrationProvider extends ChangeNotifier {
     _allLogs.clear();
     _currentStreak = 0;
     _lifetimeOunces = 0;
+    _alcoholCurrent = 0;
     _lifetimeDrinkCount = 0;
     notifyListeners();
   }
@@ -245,6 +268,7 @@ class HydrationProvider extends ChangeNotifier {
     }
     
     _hydrationCurrent = 0;
+    _alcoholCurrent = 0;
     _caffeineCurrent = 0;
     _todayLogs.clear();
     notifyListeners();
@@ -469,7 +493,11 @@ class HydrationProvider extends ChangeNotifier {
     return count;
   }
 
-  // TODO(Wilker): Implement alcohol tracking
-  double get alcoholCurrent => 0.0;
-  void setAlcoholLimit(double limit) {}
+    void setAlcoholLimit(double limit) {
+      if (limit > 0) {
+        _alcoholLimit = limit;
+        notifyListeners();
+  }
+}
+
 }
