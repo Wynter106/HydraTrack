@@ -38,6 +38,7 @@ class HydrationProvider extends ChangeNotifier {
 
   int _lifetimeDrinkCount = 0;
   int get lifetimeDrinkCount => _lifetimeDrinkCount;
+  
 
   final List<Map<String, dynamic>> _todayLogs = [];
   List<Map<String, dynamic>> get todayLogs => List.unmodifiable(_todayLogs);
@@ -67,6 +68,17 @@ class HydrationProvider extends ChangeNotifier {
       CaffeineTracker.calculateRemaining(_caffeineCurrent, dailyLimit: _caffeineLimit);
   
   // ===== DATABASE OPERATIONS =====
+bool get hasHappyHourDrink {
+  for (final log in _todayLogs) {
+    final isAlcoholic = log['isAlcoholic'] as bool? ?? false;
+    if (!isAlcoholic) continue;
+    final ts = log['timestamp'] as String?;
+    if (ts == null) continue;
+    final dt = DateTime.tryParse(ts);
+    if (dt != null && dt.hour >= 16 && dt.hour < 19) return true;
+  }
+  return false;
+}
 
   /// Load today's logs from Supabase
   Future<void> loadTodayLogs() async {
@@ -134,7 +146,11 @@ class HydrationProvider extends ChangeNotifier {
   final isAlcoholic = beverage.isAlcoholic;
   final abv = beverage.abv ?? 0.0;
   final standardDrinks = isAlcoholic ? (volume * (abv / 100)) / 0.6 : 0.0;
- 
+  
+  if (isAlcoholic) {
+  _alcoholCurrent += standardDrinks;
+  _lifetimeStandardDrinks += standardDrinks; 
+}
 
   final userId = _supabase.auth.currentUser?.id;
   String? supabaseId;
@@ -253,6 +269,7 @@ class HydrationProvider extends ChangeNotifier {
     _currentStreak = 0;
     _lifetimeOunces = 0;
     _alcoholCurrent = 0;
+    _lifetimeStandardDrinks = 0;
     _lifetimeDrinkCount = 0;
     notifyListeners();
   }
@@ -397,6 +414,52 @@ class HydrationProvider extends ChangeNotifier {
     }
     return false;
   }
+
+  // ===== ALCOHOL STATS & ACHIEVEMENTS =====
+
+/// Total alcoholic drinks logged today (count)
+int get alcoholDrinkCountToday {
+  return _todayLogs
+      .where((log) => log['isAlcoholic'] as bool? ?? false)
+      .length;
+}
+
+/// Whether the user stayed under their alcohol limit today
+bool get stayedUnderAlcoholLimit {
+  return _alcoholCurrent <= _alcoholLimit && alcoholDrinkCountToday > 0;
+}
+
+/// Whether the user logged zero alcoholic drinks today
+bool get alcoholFreeDay {
+  return alcoholDrinkCountToday == 0 && _todayLogs.isNotEmpty;
+}
+
+bool get responsibleDrinker {
+  return _alcoholCurrent > 0 && _alcoholCurrent <= 1.0;
+}
+
+bool get hydratedAndHappy {
+  return alcoholDrinkCountToday > 0 && hydrationProgress >= 1.0;
+}
+
+int get uniqueAlcoholicDrinksToday {
+  final names = _todayLogs
+      .where((log) => log['isAlcoholic'] as bool? ?? false)
+      .map((log) => log['beverageName'] as String)
+      .toSet();
+  return names.length;
+}
+
+bool get alcoholExplorer {
+  return uniqueAlcoholicDrinksToday >= 3;
+}
+
+bool get overAlcoholLimit {
+  return _alcoholCurrent > _alcoholLimit;
+}
+
+double _lifetimeStandardDrinks = 0;
+double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
 
   // ===== STATISTICS & ACHIEVEMENTS =====
 

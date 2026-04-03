@@ -368,6 +368,159 @@ _GoalCardData(
   isLocked: provider.lifetimeOunces < 5000,
   icon: Icons.pool,
 ),
+// ── ALCOHOL GOALS ────────────────────────────────────────────────
+
+// A1) First Round — log your first alcoholic drink
+_GoalCardData(
+  title: 'First Round',
+  statusLabel: provider.alcoholDrinkCountToday > 0 ? 'Earned' : 'Locked',
+  statusColor: provider.alcoholDrinkCountToday > 0 ? Colors.green : Colors.grey,
+  description: 'Log your first alcoholic drink.',
+  progressText: provider.alcoholDrinkCountToday > 0
+      ? 'First drink logged ✓'
+      : 'No drinks yet',
+  progressValue: provider.alcoholDrinkCountToday > 0 ? 1.0 : 0.0,
+  isLocked: provider.alcoholDrinkCountToday == 0,
+  icon: Icons.local_bar,
+),
+
+// A2) Responsible Drinker — stay at or under 1 standard drink today
+_GoalCardData(
+  title: 'Responsible Drinker',
+  statusLabel: provider.responsibleDrinker ? 'Earned' : 'In Progress',
+  statusColor: provider.responsibleDrinker ? Colors.green : Colors.blue,
+  description: 'Keep it to 1 standard drink today.',
+  progressText: '${provider.alcoholCurrent.toStringAsFixed(2)} / 1.0 standard drinks',
+  progressValue: provider.alcoholDrinkCountToday == 0
+      ? 0.0
+      : (1.0 - provider.alcoholCurrent).clamp(0.0, 1.0),
+  isLocked: !provider.responsibleDrinker,
+  icon: Icons.thumb_up,
+),
+
+// A3) Know Your Limit — log drinks but stay under your set limit
+_GoalCardData(
+  title: 'Know Your Limit',
+  statusLabel: provider.stayedUnderAlcoholLimit ? 'Earned' : 'In Progress',
+  statusColor: provider.stayedUnderAlcoholLimit ? Colors.green : Colors.orange,
+  description: 'Have a drink and stay under your daily limit.',
+  progressText:
+      '${provider.alcoholCurrent.toStringAsFixed(2)} / ${provider.alcoholLimit.toStringAsFixed(1)} standard drinks',
+  progressValue: provider.alcoholLimit > 0
+      ? (provider.alcoholCurrent / provider.alcoholLimit).clamp(0.0, 1.0)
+      : 0.0,
+  isLocked: !provider.stayedUnderAlcoholLimit,
+  icon: Icons.speed,
+),
+
+// A4) Alcohol Free Day — log drinks but none are alcoholic
+_GoalCardData(
+  title: 'Alcohol Free Day',
+  statusLabel: provider.alcoholFreeDay ? 'Earned' : 'In Progress',
+  statusColor: provider.alcoholFreeDay ? Colors.green : Colors.teal,
+  description: 'Log drinks today without any alcohol.',
+  progressText: provider.alcoholFreeDay
+      ? 'Clean day! ✓'
+      : provider.alcoholDrinkCountToday > 0
+          ? '${provider.alcoholDrinkCountToday} alc drink(s) logged'
+          : 'Keep logging!',
+  progressValue: provider.alcoholFreeDay ? 1.0 : 0.0,
+  isLocked: !provider.alcoholFreeDay,
+  icon: Icons.no_drinks,
+),
+
+// A5) Hydrated & Happy — meet hydration goal AND log an alcoholic drink
+_GoalCardData(
+  title: 'Hydrated & Happy',
+  statusLabel: provider.hydratedAndHappy ? 'Earned' : 'In Progress',
+  statusColor: provider.hydratedAndHappy ? Colors.green : Colors.purple,
+  description: 'Hit your hydration goal on a day you drink alcohol.',
+  progressText: provider.hydratedAndHappy
+      ? 'Balanced day ✓'
+      : '${provider.hydrationCurrent.toStringAsFixed(0)} / ${provider.hydrationGoal.toStringAsFixed(0)} oz + ${provider.alcoholDrinkCountToday} alc drink(s)',
+  progressValue: provider.hydratedAndHappy
+      ? 1.0
+      : (provider.hydrationProgress * 0.5 +
+              (provider.alcoholDrinkCountToday > 0 ? 0.5 : 0.0))
+          .clamp(0.0, 1.0),
+  isLocked: !provider.hydratedAndHappy,
+  icon: Icons.balance,
+),
+
+// A6) Bar Explorer — log 3 different alcoholic drink types today
+_GoalCardData(
+  title: 'Bar Explorer',
+  statusLabel: provider.alcoholExplorer ? 'Earned' : 'In Progress',
+  statusColor: provider.alcoholExplorer ? Colors.green : Colors.deepOrange,
+  description: 'Try 3 different alcoholic drinks today.',
+  progressText: '${provider.uniqueAlcoholicDrinksToday} / 3 types',
+  progressValue: (provider.uniqueAlcoholicDrinksToday / 3).clamp(0.0, 1.0),
+  isLocked: !provider.alcoholExplorer,
+  icon: Icons.explore,
+),
+
+// A7) Two Drink Max — log exactly 2 standard drinks and stop
+_GoalCardData(
+  title: 'Two Drink Max',
+  statusLabel: (provider.alcoholCurrent >= 1.5 && provider.alcoholCurrent <= 2.5)
+      ? 'Earned'
+      : 'In Progress',
+  statusColor: (provider.alcoholCurrent >= 1.5 && provider.alcoholCurrent <= 2.5)
+      ? Colors.green
+      : Colors.amber,
+  description: 'Land between 1.5 and 2.5 standard drinks today.',
+  progressText: '${provider.alcoholCurrent.toStringAsFixed(2)} standard drinks',
+  progressValue: (provider.alcoholCurrent / 2.5).clamp(0.0, 1.0),
+  isLocked: !(provider.alcoholCurrent >= 1.5 && provider.alcoholCurrent <= 2.5),
+  icon: Icons.looks_two,
+),
+
+// A8) Sober Curious — go alcohol free while others drink (log 5+ non-alc drinks)
+_GoalCardData(
+  title: 'Sober Curious',
+  statusLabel: provider.alcoholFreeDay && provider.logCount >= 5
+      ? 'Earned'
+      : 'In Progress',
+  statusColor: provider.alcoholFreeDay && provider.logCount >= 5
+      ? Colors.green
+      : Colors.cyan,
+  description: 'Log 5+ drinks today with zero alcohol.',
+  progressText: provider.alcoholFreeDay
+      ? '${provider.logCount} / 5 drinks, no alcohol'
+      : '${provider.alcoholDrinkCountToday} alc drink(s) logged',
+  progressValue: provider.alcoholFreeDay
+      ? (provider.logCount / 5).clamp(0.0, 1.0)
+      : 0.0,
+  isLocked: !(provider.alcoholFreeDay && provider.logCount >= 5),
+  icon: Icons.self_improvement,
+),
+
+// A9) Lifetime Sipper — reach 10 total standard drinks across all time
+_GoalCardData(
+  title: 'Lifetime Sipper',
+  statusLabel: provider.lifetimeStandardDrinks >= 10 ? 'Earned' : 'In Progress',
+  statusColor: provider.lifetimeStandardDrinks >= 10 ? Colors.green : Colors.indigo,
+  description: 'Log 10 standard drinks across your lifetime.',
+  progressText:
+      '${provider.lifetimeStandardDrinks.toStringAsFixed(1)} / 10 standard drinks',
+  progressValue: (provider.lifetimeStandardDrinks / 10).clamp(0.0, 1.0),
+  isLocked: provider.lifetimeStandardDrinks < 10,
+  icon: Icons.military_tech,
+),
+
+// A10) Happy Hour — log an alcoholic drink between 4 PM and 7 PM
+_GoalCardData(
+  title: 'Happy Hour',
+  statusLabel: provider.hasHappyHourDrink ? 'Earned' : 'Locked',
+  statusColor: provider.hasHappyHourDrink ? Colors.green : Colors.grey,
+  description: 'Log an alcoholic drink between 4 PM and 7 PM.',
+  progressText: provider.hasHappyHourDrink
+      ? 'Happy hour logged ✓'
+      : 'Log a drink 4–7 PM',
+  progressValue: provider.hasHappyHourDrink ? 1.0 : 0.0,
+  isLocked: !provider.hasHappyHourDrink,
+  icon: Icons.celebration,
+),
 
 // 31) Perfect Ten – log exactly 10 drinks in one day
 _GoalCardData(
@@ -379,6 +532,297 @@ _GoalCardData(
   progressValue: (logCount / 10).clamp(0.0, 1.0),
   isLocked: logCount < 10,
   icon: Icons.forest
+),
+// G1) Main Character Energy — log a drink and hit your hydration goal same day
+_GoalCardData(
+  title: 'Main Character Energy',
+  statusLabel: provider.hydratedAndHappy ? 'Earned' : 'In Progress',
+  statusColor: provider.hydratedAndHappy ? Colors.pink : Colors.pinkAccent.withOpacity(0.5),
+  description: 'Hydrate AND drink alcohol today. You\'re the main character.',
+  progressText: provider.hydratedAndHappy ? 'Slay ✓' : 'Not there yet bestie',
+  progressValue: provider.hydratedAndHappy ? 1.0 :
+      (provider.hydrationProgress * 0.5 + (provider.alcoholDrinkCountToday > 0 ? 0.5 : 0.0)).clamp(0.0, 1.0),
+  isLocked: !provider.hydratedAndHappy,
+  icon: Icons.star,
+),
+
+// G2) That Girl (But Make It Alcohol) — log a drink before noon
+_GoalCardData(
+  title: 'Brunch Coded',
+  statusLabel: provider.todayLogs.any((l) {
+    final isAlc = l['isAlcoholic'] as bool? ?? false;
+    final ts = l['timestamp'] as String?;
+    final dt = ts == null ? null : DateTime.tryParse(ts);
+    return isAlc && dt != null && dt.hour < 12;
+  }) ? 'Earned' : 'Locked',
+  statusColor: provider.todayLogs.any((l) {
+    final isAlc = l['isAlcoholic'] as bool? ?? false;
+    final ts = l['timestamp'] as String?;
+    final dt = ts == null ? null : DateTime.tryParse(ts);
+    return isAlc && dt != null && dt.hour < 12;
+  }) ? Colors.pinkAccent : Colors.grey,
+  description: 'Log an alcoholic drink before noon. It\'s giving brunch.',
+  progressText: 'Mimosas count.',
+  progressValue: provider.todayLogs.any((l) {
+    final isAlc = l['isAlcoholic'] as bool? ?? false;
+    final ts = l['timestamp'] as String?;
+    final dt = ts == null ? null : DateTime.tryParse(ts);
+    return isAlc && dt != null && dt.hour < 12;
+  }) ? 1.0 : 0.0,
+  isLocked: !provider.todayLogs.any((l) {
+    final isAlc = l['isAlcoholic'] as bool? ?? false;
+    final ts = l['timestamp'] as String?;
+    final dt = ts == null ? null : DateTime.tryParse(ts);
+    return isAlc && dt != null && dt.hour < 12;
+  }),
+  icon: Icons.free_breakfast,
+),
+
+// G3) NPC Mode Deactivated — log 3+ drinks in one session
+_GoalCardData(
+  title: 'NPC Mode Deactivated',
+  statusLabel: provider.alcoholDrinkCountToday >= 3 ? 'Earned' : 'In Progress',
+  statusColor: provider.alcoholDrinkCountToday >= 3 ? Colors.purple : Colors.grey,
+  description: 'Log 3 alcoholic drinks. You are no longer an NPC.',
+  progressText: '${provider.alcoholDrinkCountToday} / 3 drinks',
+  progressValue: (provider.alcoholDrinkCountToday / 3).clamp(0.0, 1.0),
+  isLocked: provider.alcoholDrinkCountToday < 3,
+  icon: Icons.videogame_asset,
+),
+
+// G4) Villain Era — go over your alcohol limit
+_GoalCardData(
+  title: 'Villain Era',
+  statusLabel: provider.overAlcoholLimit ? 'Earned' : 'In Progress',
+  statusColor: provider.overAlcoholLimit ? Colors.red : Colors.grey,
+  description: 'Exceed your alcohol limit. We don\'t recommend this.',
+  progressText: provider.overAlcoholLimit
+      ? 'You\'re in your villain era 😈'
+      : '${provider.alcoholCurrent.toStringAsFixed(2)} / ${provider.alcoholLimit.toStringAsFixed(1)} to chaos',
+  progressValue: provider.alcoholLimit > 0
+      ? (provider.alcoholCurrent / provider.alcoholLimit).clamp(0.0, 1.0)
+      : 0.0,
+  isLocked: !provider.overAlcoholLimit,
+  icon: Icons.warning_amber,
+),
+
+// G5) No Thoughts Head Empty — log a drink with no water before it
+_GoalCardData(
+  title: 'No Thoughts Head Empty',
+  statusLabel: provider.alcoholDrinkCountToday > 0 &&
+      provider.logCount == provider.alcoholDrinkCountToday ? 'Earned' : 'Locked',
+  statusColor: provider.alcoholDrinkCountToday > 0 &&
+      provider.logCount == provider.alcoholDrinkCountToday
+      ? Colors.deepPurple : Colors.grey,
+  description: 'Log ONLY alcoholic drinks today. Zero water. Bold.',
+  progressText: 'Hydration who?',
+  progressValue: provider.alcoholDrinkCountToday > 0 &&
+      provider.logCount == provider.alcoholDrinkCountToday ? 1.0 : 0.0,
+  isLocked: !(provider.alcoholDrinkCountToday > 0 &&
+      provider.logCount == provider.alcoholDrinkCountToday),
+  icon: Icons.psychology,
+),
+
+// G6) It's Giving Hydration — drink water AND alcohol, bestie
+_GoalCardData(
+  title: 'It\'s Giving Hydration',
+  statusLabel: provider.alcoholDrinkCountToday > 0 &&
+      (provider.logCount - provider.alcoholDrinkCountToday) >= 3
+      ? 'Earned' : 'In Progress',
+  statusColor: Colors.cyan,
+  description: 'Log 3+ waters AND an alcoholic drink. Slaying responsibly.',
+  progressText: '${provider.logCount - provider.alcoholDrinkCountToday} waters + ${provider.alcoholDrinkCountToday} drinks',
+  progressValue: ((provider.logCount - provider.alcoholDrinkCountToday) / 3 * 0.5 +
+      (provider.alcoholDrinkCountToday > 0 ? 0.5 : 0.0)).clamp(0.0, 1.0),
+  isLocked: !(provider.alcoholDrinkCountToday > 0 &&
+      (provider.logCount - provider.alcoholDrinkCountToday) >= 3),
+  icon: Icons.water_drop,
+),
+
+// G7) BuzzBall Baddie — log a BuzzBall
+_GoalCardData(
+  title: 'BuzzBall Baddie',
+  statusLabel: provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('buzzball') ||
+      (l['beverageName'] as String).toLowerCase().contains('buzz ball'))
+      ? 'Earned' : 'Locked',
+  statusColor: provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('buzzball') ||
+      (l['beverageName'] as String).toLowerCase().contains('buzz ball'))
+      ? Colors.orange : Colors.grey,
+  description: 'Log a BuzzBall. You already know.',
+  progressText: 'Round is a shape.',
+  progressValue: provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('buzzball') ||
+      (l['beverageName'] as String).toLowerCase().contains('buzz ball'))
+      ? 1.0 : 0.0,
+  isLocked: !provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('buzzball') ||
+      (l['beverageName'] as String).toLowerCase().contains('buzz ball')),
+  icon: Icons.circle,
+),
+
+// G8) Seltzer Girlie — log a hard seltzer
+_GoalCardData(
+  title: 'Seltzer Girlie',
+  statusLabel: provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('white claw') ||
+      (l['beverageName'] as String).toLowerCase().contains('truly') ||
+      (l['beverageName'] as String).toLowerCase().contains('high noon') ||
+      (l['beverageName'] as String).toLowerCase().contains('seltzer'))
+      ? 'Earned' : 'Locked',
+  statusColor: provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('white claw') ||
+      (l['beverageName'] as String).toLowerCase().contains('truly') ||
+      (l['beverageName'] as String).toLowerCase().contains('high noon') ||
+      (l['beverageName'] as String).toLowerCase().contains('seltzer'))
+      ? Colors.lightBlue : Colors.grey,
+  description: 'Log a hard seltzer. White Claw, Truly, High Noon — pick your fighter.',
+  progressText: 'Sparkling water but make it fun.',
+  progressValue: provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('white claw') ||
+      (l['beverageName'] as String).toLowerCase().contains('truly') ||
+      (l['beverageName'] as String).toLowerCase().contains('high noon') ||
+      (l['beverageName'] as String).toLowerCase().contains('seltzer'))
+      ? 1.0 : 0.0,
+  isLocked: !provider.todayLogs.any((l) =>
+      (l['beverageName'] as String).toLowerCase().contains('white claw') ||
+      (l['beverageName'] as String).toLowerCase().contains('truly') ||
+      (l['beverageName'] as String).toLowerCase().contains('high noon') ||
+      (l['beverageName'] as String).toLowerCase().contains('seltzer')),
+  icon: Icons.bubble_chart,
+),
+
+// G9) Roman Empire — log a drink you think about constantly
+_GoalCardData(
+  title: 'Roman Empire',
+  statusLabel: provider.alcoholDrinkCountToday >= 1 ? 'Earned' : 'Locked',
+  statusColor: provider.alcoholDrinkCountToday >= 1 ? Colors.amber : Colors.grey,
+  description: 'Log any drink. We all think about it constantly.',
+  progressText: provider.alcoholDrinkCountToday >= 1
+      ? 'Rome wasn\'t built in a day ✓'
+      : 'You think about it. Log it.',
+  progressValue: provider.alcoholDrinkCountToday >= 1 ? 1.0 : 0.0,
+  isLocked: provider.alcoholDrinkCountToday < 1,
+  icon: Icons.account_balance,
+),
+
+// G10) Delulu Era — log 4+ drinks and still hit hydration goal
+_GoalCardData(
+  title: 'Delulu Era',
+  statusLabel: provider.alcoholDrinkCountToday >= 4 &&
+      provider.hydrationProgress >= 1.0 ? 'Earned' : 'In Progress',
+  statusColor: provider.alcoholDrinkCountToday >= 4 &&
+      provider.hydrationProgress >= 1.0 ? Colors.pink : Colors.pinkAccent.withOpacity(0.4),
+  description: 'Log 4 drinks AND still hit your hydration goal. Manifesting.',
+  progressText: '${provider.alcoholDrinkCountToday} / 4 drinks + ${(provider.hydrationProgress * 100).toStringAsFixed(0)}% hydration',
+  progressValue: ((provider.alcoholDrinkCountToday / 4) * 0.5 +
+      provider.hydrationProgress * 0.5).clamp(0.0, 1.0),
+  isLocked: !(provider.alcoholDrinkCountToday >= 4 &&
+      provider.hydrationProgress >= 1.0),
+  icon: Icons.auto_awesome,
+),
+
+// G11) Understood the Assignment — log a drink on a Friday after 5 PM
+_GoalCardData(
+  title: 'Understood the Assignment',
+  statusLabel: DateTime.now().weekday == DateTime.friday &&
+      provider.todayLogs.any((l) {
+        final isAlc = l['isAlcoholic'] as bool? ?? false;
+        final ts = l['timestamp'] as String?;
+        final dt = ts == null ? null : DateTime.tryParse(ts);
+        return isAlc && dt != null && dt.hour >= 17;
+      }) ? 'Earned' : 'Locked',
+  statusColor: DateTime.now().weekday == DateTime.friday &&
+      provider.todayLogs.any((l) {
+        final isAlc = l['isAlcoholic'] as bool? ?? false;
+        final ts = l['timestamp'] as String?;
+        final dt = ts == null ? null : DateTime.tryParse(ts);
+        return isAlc && dt != null && dt.hour >= 17;
+      }) ? Colors.green : Colors.grey,
+  description: 'Log a drink on Friday after 5 PM. You get it.',
+  progressText: DateTime.now().weekday == DateTime.friday
+      ? 'It\'s Friday after 5 — go off'
+      : 'Only on Fridays',
+  progressValue: DateTime.now().weekday == DateTime.friday &&
+      provider.todayLogs.any((l) {
+        final isAlc = l['isAlcoholic'] as bool? ?? false;
+        final ts = l['timestamp'] as String?;
+        final dt = ts == null ? null : DateTime.tryParse(ts);
+        return isAlc && dt != null && dt.hour >= 17;
+      }) ? 1.0 : 0.0,
+  isLocked: !(DateTime.now().weekday == DateTime.friday &&
+      provider.todayLogs.any((l) {
+        final isAlc = l['isAlcoholic'] as bool? ?? false;
+        final ts = l['timestamp'] as String?;
+        final dt = ts == null ? null : DateTime.tryParse(ts);
+        return isAlc && dt != null && dt.hour >= 17;
+      })),
+  icon: Icons.celebration,
+),
+
+// G12) Ate and Left No Crumbs — hit exactly your alcohol limit, not over
+_GoalCardData(
+  title: 'Ate and Left No Crumbs',
+  statusLabel: provider.alcoholCurrent >= provider.alcoholLimit * 0.9 &&
+      provider.alcoholCurrent <= provider.alcoholLimit
+      ? 'Earned' : 'In Progress',
+  statusColor: provider.alcoholCurrent >= provider.alcoholLimit * 0.9 &&
+      provider.alcoholCurrent <= provider.alcoholLimit
+      ? Colors.green : Colors.deepOrange,
+  description: 'Hit 90–100% of your alcohol limit. Perfect execution.',
+  progressText: '${provider.alcoholCurrent.toStringAsFixed(2)} / ${provider.alcoholLimit.toStringAsFixed(1)} — precision.',
+  progressValue: provider.alcoholLimit > 0
+      ? (provider.alcoholCurrent / provider.alcoholLimit).clamp(0.0, 1.0)
+      : 0.0,
+  isLocked: !(provider.alcoholCurrent >= provider.alcoholLimit * 0.9 &&
+      provider.alcoholCurrent <= provider.alcoholLimit),
+  icon: Icons.done_all,
+),
+
+// G13) Healing Era — alcohol free day with full hydration goal met
+_GoalCardData(
+  title: 'Healing Era',
+  statusLabel: provider.alcoholFreeDay && provider.hydrationProgress >= 1.0
+      ? 'Earned' : 'In Progress',
+  statusColor: provider.alcoholFreeDay && provider.hydrationProgress >= 1.0
+      ? Colors.green : Colors.teal,
+  description: 'No alcohol + full hydration goal. You\'re healing.',
+  progressText: provider.alcoholFreeDay
+      ? '${(provider.hydrationProgress * 100).toStringAsFixed(0)}% hydrated, zero drinks 🌱'
+      : 'Stay sober and hydrated today',
+  progressValue: (provider.hydrationProgress * 0.5 +
+      (provider.alcoholFreeDay ? 0.5 : 0.0)).clamp(0.0, 1.0),
+  isLocked: !(provider.alcoholFreeDay && provider.hydrationProgress >= 1.0),
+  icon: Icons.spa,
+),
+
+// G14) Plot Twist — log water AFTER every alcoholic drink (more water than alcohol logs)
+_GoalCardData(
+  title: 'Plot Twist',
+  statusLabel: provider.alcoholDrinkCountToday > 0 &&
+      (provider.logCount - provider.alcoholDrinkCountToday) >= provider.alcoholDrinkCountToday
+      ? 'Earned' : 'In Progress',
+  statusColor: Colors.indigo,
+  description: 'Log at least as many waters as alcoholic drinks. Plot twist: you\'re responsible.',
+  progressText: '${provider.logCount - provider.alcoholDrinkCountToday} waters vs ${provider.alcoholDrinkCountToday} drinks',
+  progressValue: provider.alcoholDrinkCountToday == 0 ? 0.0 :
+      ((provider.logCount - provider.alcoholDrinkCountToday) / provider.alcoholDrinkCountToday).clamp(0.0, 1.0),
+  isLocked: !(provider.alcoholDrinkCountToday > 0 &&
+      (provider.logCount - provider.alcoholDrinkCountToday) >= provider.alcoholDrinkCountToday),
+  icon: Icons.swap_horiz,
+),
+
+// G15) That's Crazy, Log It — log 6+ different drinks of any kind today
+_GoalCardData(
+  title: 'That\'s Crazy, Log It',
+  statusLabel: provider.uniqueDrinkTypesToday >= 6 ? 'Earned' : 'In Progress',
+  statusColor: provider.uniqueDrinkTypesToday >= 6 ? Colors.green : Colors.deepPurple,
+  description: 'Log 6 different drinks today. That\'s crazy. Log it.',
+  progressText: '${provider.uniqueDrinkTypesToday} / 6 unique drinks',
+  progressValue: (provider.uniqueDrinkTypesToday / 6).clamp(0.0, 1.0),
+  isLocked: provider.uniqueDrinkTypesToday < 6,
+  icon: Icons.six_ft_apart,
 ),
     ];
     
@@ -485,6 +929,46 @@ IconData _getGoalIcon(String title) {
       return Icons.pool;
     case 'Hydration Station':
       return Icons.ev_station;
+    case 'First Round':       return Icons.local_bar;
+    case 'Responsible Drinker': return Icons.thumb_up;
+    case 'Know Your Limit':   return Icons.speed;
+    case 'Alcohol Free Day':  return Icons.no_drinks;
+    case 'Hydrated & Happy':  return Icons.balance;
+    case 'Bar Explorer':      return Icons.explore;
+    case 'Two Drink Max':     return Icons.looks_two;
+    case 'Sober Curious':     return Icons.self_improvement;
+    case 'Lifetime Sipper':   return Icons.military_tech;
+    case 'Happy Hour':        return Icons.celebration;
+    case 'Shot Caller':               return Icons.local_bar;
+    case 'The Moderate':              return Icons.thermostat;
+    case 'Beer Aficionado':           return Icons.sports_bar;
+    case 'Wine Wednesday':            return Icons.wine_bar;
+    case 'Tequila Tuesday':           return Icons.local_bar;
+    case 'Weekend Sipper':            return Icons.beach_access;
+    case 'Liquid Courage':            return Icons.bolt;
+    case 'Nightcap':                  return Icons.nightlight;
+    case 'Cocktail Connoisseur':      return Icons.local_drink;
+    case 'Balanced Act':              return Icons.balance;
+    case 'Lifetime 25':               return Icons.emoji_events;
+    case 'Designated Driver':         return Icons.directions_car;
+    case 'Sunrise Recovery':          return Icons.wb_sunny;
+    case 'Century Club':              return Icons.military_tech;
+    case 'On The Rocks':              return Icons.ac_unit;
+    case 'Main Character Energy':     return Icons.star;
+    case 'Brunch Coded':              return Icons.free_breakfast;
+    case 'NPC Mode Deactivated':      return Icons.videogame_asset;
+    case 'Villain Era':               return Icons.warning_amber;
+    case 'No Thoughts Head Empty':    return Icons.psychology;
+    case 'It\'s Giving Hydration':    return Icons.water_drop;
+    case 'BuzzBall Baddie':           return Icons.circle;
+    case 'Seltzer Girlie':            return Icons.bubble_chart;
+    case 'Roman Empire':              return Icons.account_balance;
+    case 'Delulu Era':                return Icons.auto_awesome;
+    case 'Understood the Assignment': return Icons.celebration;
+    case 'Ate and Left No Crumbs':    return Icons.done_all;
+    case 'Healing Era':               return Icons.spa;
+    case 'Plot Twist':                return Icons.swap_horiz;
+    case 'That\'s Crazy, Log It':     return Icons.six_ft_apart;
     
     default:
       return Icons.water_drop;
