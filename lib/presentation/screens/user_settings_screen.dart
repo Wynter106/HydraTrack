@@ -73,20 +73,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _savePrefs();
 
     if (val) {
+      await NotificationManager.instance.requestPermissionIfNeeded();
       await NotificationManager.instance.showTestNotification();
       await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Daily reminder scheduled: ${_reminderTime.format(context)}')),
-      );
     } else {
       await NotificationManager.instance.cancelHydrationReminder();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Daily reminder cancelled')),
-      );
     }
   }
 
@@ -103,10 +94,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (_notificationsEnabled) {
       await NotificationManager.instance.scheduleDailyHydrationReminder(_reminderTime);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reminder time updated: ${_reminderTime.format(context)}')),
-      );
     }
   }
 
@@ -115,17 +102,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _savePrefs();
 
     if (val) {
+      await NotificationManager.instance.requestPermissionIfNeeded();
       await NotificationManager.instance.scheduleDailyMedicationReminder(_medicationReminderTime);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Medication reminder scheduled: ${_medicationReminderTime.format(context)}')),
-      );
     } else {
       await NotificationManager.instance.cancelMedicationReminder();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medication reminder cancelled')),
-      );
     }
   }
 
@@ -139,10 +119,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _savePrefs();
     if (_medicationNotificationsEnabled) {
       await NotificationManager.instance.scheduleDailyMedicationReminder(_medicationReminderTime);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Medication reminder time updated: ${_medicationReminderTime.format(context)}')),
-      );
     }
   }
 
@@ -283,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListTile(
               leading: Icon(Icons.water_drop_outlined, color: colors.primary),
               title: const Text('HydraTrack'),
-              subtitle: const Text('Version 1.0.0 (Alpha)'),
+              subtitle: const Text('Version 1.2.0'),
             ),
           ),
 

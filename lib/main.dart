@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'presentation/theme/app_theme.dart';
 import 'presentation/screens/home_screen.dart';
@@ -31,7 +32,13 @@ Future<void> main() async {
   );
 
   await NotificationManager.instance.init();
-  await NotificationManager.instance.requestPermissionIfNeeded();
+  // 알림 권한 요청은 설정 화면에서 알림을 켤 때 요청 (앱 시작 시 X)
+
+  final prefs = await SharedPreferences.getInstance();
+  final hasLaunchedBefore = prefs.getBool('has_launched_before') ?? false;
+  if (!hasLaunchedBefore) {
+    await prefs.setBool('has_launched_before', true);
+  }
 
   runApp(
     MultiProvider(
@@ -43,13 +50,14 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ConnectivityService()),
       ],
-      child: const MyApp(),
+      child: MyApp(isFirstLaunch: !hasLaunchedBefore),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isFirstLaunch;
+  const MyApp({super.key, required this.isFirstLaunch});
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +68,11 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
-      
+
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          return auth.isLoggedIn ? const HomeScreen() : const LoginScreen();
+          if (auth.isLoggedIn) return const HomeScreen();
+          return LoginScreen(startWithSignUp: isFirstLaunch);
         },
       ),
       

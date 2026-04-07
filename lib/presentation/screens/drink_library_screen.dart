@@ -15,18 +15,39 @@ class DrinkLibraryScreen extends StatefulWidget {
   State<DrinkLibraryScreen> createState() => _DrinkLibraryScreenState();
 }
 
-class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
+class _DrinkLibraryScreenState extends State<DrinkLibraryScreen>
+    with SingleTickerProviderStateMixin {
   final BeverageDao dao = BeverageDao();
   List<Beverage> beverages = [];
   List<Beverage> filteredBeverages = [];
   bool isLoading = true;
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _loadBeverages();
     _loadFavorites();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      // 탭 전환 시 검색어 초기화
+      if (_tabController.indexIsChanging) {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+          filteredBeverages = beverages;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   // Fetch all beverages from the database
@@ -88,13 +109,11 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
         .where((bev) => favProvider.isFavorite(bev.name))
         .toList();
 
-    // DefaultTabController enables the TabBar and TabBarView to sync automatically
-    return DefaultTabController(
-      length: 2, // We have two tabs: All Drinks and Favorites
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: const Text('Drink Library'),
           bottom: TabBar(
+            controller: _tabController,
             tabs: [
               Tab(text: 'All Drinks', icon: Icon(Icons.local_drink)),
               Tab(text: 'Favorites', icon: Icon(Icons.star)),
@@ -127,15 +146,17 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                   filled: true,
                   isDense: true,
                 ),
+                controller: _searchController,
                 onChanged: _onSearchChanged,
               ),
             ),
-            
+
             // The main content area that switches based on the selected tab
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : TabBarView(
+                      controller: _tabController,
                       children: [
                         // First Tab: All Drinks
                         _buildDrinkList(
@@ -154,7 +175,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -288,9 +308,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     final isQuickAdd = favorite?.isQuickAdd ?? false;
 
     final volumeController = TextEditingController(text: currentVolume.toString());
-    final displayNameController = TextEditingController(
-      text: favorite?.displayName ?? '',
-    );
 
     bool tempQuickAdd = isQuickAdd;
     double tempVolume = currentVolume;
@@ -310,17 +327,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
-                      controller: displayNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Display Name',
-                        hintText: beverage.name,
-                        helperText: 'Name shown on Quick Add button',
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
                     DropdownButtonFormField<String>(
                       value: selectedIcon,
                       decoration: const InputDecoration(
@@ -466,10 +472,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
                       return;
                     }
 
-                    final newDisplayName = displayNameController.text.trim().isEmpty
-                        ? null
-                        : displayNameController.text.trim();
-
                     // Capture values before closing dialog
                     final capturedFavoriteId = favorite.id;
                     final capturedIcon = selectedIcon;
@@ -485,7 +487,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
 
                     await favProvider.updateFavorite(
                       id: capturedFavoriteId,
-                      displayName: newDisplayName,
                       customIcon: capturedIcon,
                       customVolumeOz: vol,
                     );
@@ -512,7 +513,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
       );
     } finally {
       volumeController.dispose();
-      displayNameController.dispose();
     }
   }
 
@@ -550,10 +550,6 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
 
 // ------------------------------------------------------------------

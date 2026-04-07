@@ -21,7 +21,8 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.user == null) return 'Sign up failed';
 
-      notifyListeners();
+      // notifyListeners() 호출 안 함 — sign up 직후 Consumer가 HomeScreen으로
+      // 날리는 걸 방지. LoginScreen에서 ProfileSetupScreen으로 직접 navigate함.
       return null;
     } catch (e) {
       return e.toString();

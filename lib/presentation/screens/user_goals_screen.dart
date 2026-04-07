@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/providers/hydration_provider.dart';
+import '../widgets/app_bottom_nav.dart';
 
 /// UserGoalsScreen - shows goals/badges based on today's real drink logs.
 
@@ -850,6 +851,7 @@ _GoalCardData(
           ),
         ),
       ),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 2),
     );
   }
 }

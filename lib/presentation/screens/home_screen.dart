@@ -179,17 +179,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final provider = context.read<HydrationProvider>();
       await provider.addDrink(beverage, volumeOz: volumeOz);
 
-      if (mounted) {
-        final profileProvider = context.read<ProfileProvider>();
-        final unit = profileProvider.preferredVolumeUnit;
-        final displayVolume = unit == 'ml' ? volumeOz * 29.5735 : volumeOz;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Added ${displayVolume.toStringAsFixed(1)} $unit of ${favorite.beverageName}'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      }
     } catch (e) {
       debugPrint('Error adding drink: $e');
     }
@@ -300,14 +289,6 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildQuickAddSection(favProvider),
 
             const SizedBox(height: 24),
-
-            // Reset button (for testing)
-            TextButton(
-              onPressed: () {
-                context.read<HydrationProvider>().resetDay();
-              },
-              child: const Text('Reset (Test)'),
-            ),
           ],
         ),
       )),

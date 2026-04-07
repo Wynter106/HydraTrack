@@ -13,11 +13,6 @@ class NotificationManager {
   static const int hydrationReminderId = 1001;
   static const int medicationReminderId = 2001;
 
-
-
-
-
-
 /// Once per day: repeating medication reminder at the user-selected time
 Future<void> scheduleDailyMedicationReminder(TimeOfDay time) async {
   await cancelMedicationReminder();
@@ -29,7 +24,13 @@ Future<void> scheduleDailyMedicationReminder(TimeOfDay time) async {
     importance: Importance.defaultImportance,
     priority: Priority.defaultPriority,
   );
-  const details = NotificationDetails(android: androidDetails);
+
+  const darwinDetails = DarwinNotificationDetails();
+
+  const details = NotificationDetails(
+    android: androidDetails,
+    iOS: darwinDetails,
+  );
 
   final now = tz.TZDateTime.now(tz.local);
 
@@ -63,17 +64,22 @@ Future<void> cancelMedicationReminder() async {
   await _plugin.cancel(medicationReminderId);
 }
 
-
-
-
-
-
   Future<void> init() async {
     // timezone init (for scheduled notifications)
     tzdata.initializeTimeZones();
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidInit);
+
+    const darwinInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: darwinInit,
+    );
 
     await _plugin.initialize(initSettings);
   }
@@ -83,6 +89,15 @@ Future<void> cancelMedicationReminder() async {
         AndroidFlutterLocalNotificationsPlugin>();
 
     await android?.requestNotificationsPermission();
+
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+
+    await ios?.requestPermissions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
   }
 
   /// Once per day: repeating reminder at the user-selected time (time)
@@ -97,7 +112,13 @@ Future<void> cancelMedicationReminder() async {
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
     );
-    const details = NotificationDetails(android: androidDetails);
+
+    const darwinDetails = DarwinNotificationDetails();
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: darwinDetails,
+    );
 
     final now = tz.TZDateTime.now(tz.local);
 
@@ -147,7 +168,13 @@ Future<void> cancelMedicationReminder() async {
       importance: Importance.max,
       priority: Priority.high,
     );
-    const details = NotificationDetails(android: androidDetails);
+
+    const darwinDetails = DarwinNotificationDetails();
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: darwinDetails,
+    );
 
     await _plugin.show(
       9999,

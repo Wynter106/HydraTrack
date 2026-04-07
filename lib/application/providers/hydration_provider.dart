@@ -8,16 +8,16 @@ import '../../business/calculators/caffeine_tracker.dart';
 
 class HydrationProvider extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-  
+
   double _hydrationCurrent = 0;
   double get hydrationCurrent => _hydrationCurrent;
-  
+
   double _caffeineCurrent = 0;
   double get caffeineCurrent => _caffeineCurrent;
-  
+
   double _hydrationGoal = 64;
   double get hydrationGoal => _hydrationGoal;
-  
+
   double _caffeineLimit = 400;
   double get caffeineLimit => _caffeineLimit;
 
@@ -38,7 +38,9 @@ class HydrationProvider extends ChangeNotifier {
 
   int _lifetimeDrinkCount = 0;
   int get lifetimeDrinkCount => _lifetimeDrinkCount;
-  
+
+  double _lifetimeStandardDrinks = 0;
+  double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
 
   final List<Map<String, dynamic>> _todayLogs = [];
   List<Map<String, dynamic>> get todayLogs => List.unmodifiable(_todayLogs);
@@ -46,71 +48,65 @@ class HydrationProvider extends ChangeNotifier {
 
   final List<Map<String, dynamic>> _allLogs = [];
   List<Map<String, dynamic>> get allLogs => List.unmodifiable(_allLogs);
-  
+
   // ===== COMPUTED PROPERTIES =====
 
-  double get hydrationProgress => 
+  double get hydrationProgress =>
       HydrationCalculator.calculateProgress(_hydrationCurrent, _hydrationGoal);
-  
-  double get caffeineProgress => 
+
+  double get caffeineProgress =>
       CaffeineTracker.calculateProgress(_caffeineCurrent, dailyLimit: _caffeineLimit);
-  
-  bool get isNearCaffeineLimit => 
+
+  bool get isNearCaffeineLimit =>
       CaffeineTracker.isNearLimit(_caffeineCurrent, dailyLimit: _caffeineLimit);
-  
-  bool get isOverCaffeineLimit => 
+
+  bool get isOverCaffeineLimit =>
       CaffeineTracker.isOverLimit(_caffeineCurrent, dailyLimit: _caffeineLimit);
-  
-  double get hydrationRemaining => 
+
+  double get hydrationRemaining =>
       HydrationCalculator.calculateRemaining(_hydrationCurrent, _hydrationGoal);
-  
-  double get caffeineRemaining => 
+
+  double get caffeineRemaining =>
       CaffeineTracker.calculateRemaining(_caffeineCurrent, dailyLimit: _caffeineLimit);
-  
+
   // ===== DATABASE OPERATIONS =====
-bool get hasHappyHourDrink {
-  for (final log in _todayLogs) {
-    final isAlcoholic = log['isAlcoholic'] as bool? ?? false;
-    if (!isAlcoholic) continue;
-    final ts = log['timestamp'] as String?;
-    if (ts == null) continue;
-    final dt = DateTime.tryParse(ts);
-    if (dt != null && dt.hour >= 16 && dt.hour < 19) return true;
-  }
-  return false;
-}
 
   /// Load today's logs from Supabase
   Future<void> loadTodayLogs() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
-    
+
     try {
-      final now = DateTime.now().toUtc();
-      final startOfDay = DateTime.utc(now.year, now.month, now.day);
-      
+      // Use local time for date boundary so "today" means today in user's timezone
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day).toUtc();
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).toUtc();
+
       final data = await _supabase
           .from('beverage_logs')
           .select()
           .eq('user_id', userId)
           .gte('logged_at', startOfDay.toIso8601String())
+          .lte('logged_at', endOfDay.toIso8601String())
           .order('logged_at', ascending: false);
-      
+
       _hydrationCurrent = 0;
       _caffeineCurrent = 0;
+      _alcoholCurrent = 0;
       _todayLogs.clear();
-      
+      _allLogs.clear();
+
       for (final json in data) {
         final hydration = (json['hydration_contribution_oz'] as num?)?.toDouble() ?? 0;
         final caffeine = (json['caffeine_mg'] as num?)?.toDouble() ?? 0;
         final volume = (json['amount_oz'] as num?)?.toDouble() ?? 0;
-        final isAlcoholic   = json['is_alcoholic'] as bool? ?? false;       // ← add
+        final isAlcoholic = json['is_alcoholic'] as bool? ?? false;
         final standardDrinks = (json['standard_drinks'] as num?)?.toDouble() ?? 0;
-        
+
         _hydrationCurrent += hydration;
         _caffeineCurrent += caffeine;
         if (isAlcoholic) _alcoholCurrent += standardDrinks;
-        
+
         final logEntry = {
           'id': json['id'],
           'beverageId': 0,
@@ -123,112 +119,114 @@ bool get hasHappyHourDrink {
           'standardDrinks': standardDrinks,
           'timestamp': json['logged_at'],
         };
-        
+
         _todayLogs.add(logEntry);
         _allLogs.add(logEntry);
       }
-      
+
       notifyListeners();
-      
+
     } catch (e) {
       debugPrint('Error loading logs: $e');
     }
   }
-  
+
   /// Add a drink
   Future<Map<String, double>> addDrink(Beverage beverage, {double? volumeOz}) async {
-  final volume = volumeOz ?? beverage.defaultVolumeOz.toDouble();
+    final volume = volumeOz ?? beverage.defaultVolumeOz.toDouble();
 
-  final actualHydration = HydrationCalculator.calculateFromBeverage(beverage, volumeOz: volume);
-  final caffeine = CaffeineTracker.calculateFromBeverage(beverage, volumeOz: volume);
+    final actualHydration = HydrationCalculator.calculateFromBeverage(
+      beverage,
+      volumeOz: volume,
+    );
+    final caffeine = CaffeineTracker.calculateFromBeverage(
+      beverage,
+      volumeOz: volume,
+    );
 
-  
-  final isAlcoholic = beverage.isAlcoholic;
-  final abv = beverage.abv ?? 0.0;
-  final standardDrinks = isAlcoholic ? (volume * (abv / 100)) / 0.6 : 0.0;
-  
-  if (isAlcoholic) {
-  _alcoholCurrent += standardDrinks;
-  _lifetimeStandardDrinks += standardDrinks; 
-}
+    final isAlcoholic = beverage.isAlcoholic;
+    final abv = beverage.abv ?? 0.0;
+    final standardDrinks = isAlcoholic ? (volume * (abv / 100)) / 0.6 : 0.0;
 
-  final userId = _supabase.auth.currentUser?.id;
-  String? supabaseId;
+    final userId = _supabase.auth.currentUser?.id;
+    String? supabaseId;
 
-  if (userId != null) {
-    try {
-      final response = await _supabase
-          .from('beverage_logs')
-          .insert({
-            'user_id': userId,
-            'beverage_name': beverage.name,
-            'amount_oz': volume,
-            'caffeine_mg': caffeine.round(),
-            'hydration_contribution_oz': actualHydration,
-            'is_alcoholic': isAlcoholic,
-            'abv': isAlcoholic ? abv : null,               
-            'standard_drinks': isAlcoholic ? standardDrinks : null,
-            'alcohol_source': isAlcoholic ? 'library' : null, 
-            'logged_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .select()
-          .single();
+    if (userId != null) {
+      try {
+        final response = await _supabase
+            .from('beverage_logs')
+            .insert({
+              'user_id': userId,
+              'beverage_name': beverage.name,
+              'amount_oz': volume,
+              'caffeine_mg': caffeine.round(),
+              'hydration_contribution_oz': actualHydration,
+              'is_alcoholic': isAlcoholic,
+              'abv': isAlcoholic ? abv : null,
+              'standard_drinks': isAlcoholic ? standardDrinks : null,
+              'alcohol_source': isAlcoholic ? 'library' : null,
+              'logged_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .select()
+            .single();
 
-      supabaseId = response['id'] as String?;
-    } catch (e) {
-      debugPrint('Offline — saving drink to local queue: $e');
-      await _saveToLocalQueue({
-        'beverage_name': beverage.name,
-        'amount_oz': volume,
-        'caffeine_mg': caffeine.round(),
-        'hydration_contribution_oz': actualHydration,
-        'is_alcoholic': isAlcoholic,
-        'abv': isAlcoholic ? abv : null,
-        'standard_drinks': isAlcoholic ? standardDrinks : null,
-        'logged_at': DateTime.now().toUtc().toIso8601String(),
-      });
+        supabaseId = response['id'] as String?;
+      } catch (e) {
+        debugPrint('Offline — saving drink to local queue: $e');
+        await _saveToLocalQueue({
+          'beverage_name': beverage.name,
+          'amount_oz': volume,
+          'caffeine_mg': caffeine.round(),
+          'hydration_contribution_oz': actualHydration,
+          'is_alcoholic': isAlcoholic,
+          'abv': isAlcoholic ? abv : null,
+          'standard_drinks': isAlcoholic ? standardDrinks : null,
+          'logged_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
     }
+
+    final logEntry = {
+      'id': supabaseId,
+      'beverageId': beverage.id ?? 0,
+      'beverageName': beverage.name,
+      'volumeOz': volume,
+      'actualHydrationOz': actualHydration,
+      'caffeineMg': caffeine,
+      'hydrationFactor': beverage.hydrationFactor,
+      'isAlcoholic': isAlcoholic,
+      'standardDrinks': standardDrinks,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    _hydrationCurrent += actualHydration;
+    _caffeineCurrent += caffeine;
+    if (isAlcoholic) {
+      _alcoholCurrent += standardDrinks;
+      _lifetimeStandardDrinks += standardDrinks;
+    }
+    _lifetimeOunces += actualHydration;
+    _lifetimeDrinkCount++;
+
+    _todayLogs.insert(0, logEntry);
+    _allLogs.insert(0, logEntry);
+
+    notifyListeners();
+
+    return {
+      'hydration': actualHydration,
+      'caffeine': caffeine,
+      'standardDrinks': standardDrinks,
+    };
   }
 
-  final logEntry = {
-    'id': supabaseId,
-    'beverageId': beverage.id ?? 0,
-    'beverageName': beverage.name,
-    'volumeOz': volume,
-    'actualHydrationOz': actualHydration,
-    'caffeineMg': caffeine,
-    'hydrationFactor': beverage.hydrationFactor,
-    'isAlcoholic': isAlcoholic,  
-    'standardDrinks': standardDrinks,  
-    'timestamp': DateTime.now().toIso8601String(),
-  };
-
-  _hydrationCurrent += actualHydration;
-  _caffeineCurrent  += caffeine;
-  if (isAlcoholic) _alcoholCurrent += standardDrinks;  
-  _lifetimeOunces += actualHydration;
-  _lifetimeDrinkCount++;
-
-  _todayLogs.add(logEntry);
-  _allLogs.add(logEntry);
-
-  notifyListeners();
-
-  return {
-    'hydration': actualHydration,
-    'caffeine': caffeine,
-    'standardDrinks': standardDrinks, 
-  };
-}
-  
   /// Remove a drink
   Future<void> removeDrink(int index) async {
     if (index < 0 || index >= _todayLogs.length) return;
-    
+
     final log = _todayLogs[index];
     final logId = log['id'] as String?;
-    
-    // Delete from Supabase
+
     if (logId != null) {
       try {
         await _supabase
@@ -240,41 +238,44 @@ bool get hasHappyHourDrink {
         return;
       }
     }
-    
-    // Update local state
+
     _hydrationCurrent -= (log['actualHydrationOz'] as double?) ?? 0;
     _caffeineCurrent -= (log['caffeineMg'] as double?) ?? 0;
-    
+    final isAlcoholic = log['isAlcoholic'] as bool? ?? false;
+    if (isAlcoholic) {
+      _alcoholCurrent -= (log['standardDrinks'] as double?) ?? 0;
+    }
+
     if (_hydrationCurrent < 0) _hydrationCurrent = 0;
     if (_caffeineCurrent < 0) _caffeineCurrent = 0;
-    
+    if (_alcoholCurrent < 0) _alcoholCurrent = 0;
+
     final ts = log['timestamp'] as String?;
     if (ts != null) {
       _allLogs.removeWhere((x) => x['timestamp'] == ts);
     }
 
     _todayLogs.removeAt(index);
-    
+
     notifyListeners();
   }
-  
+
   // ===== STATE MANAGEMENT =====
 
-  /// Clear all data (for logout)
   void clearData() {
     _hydrationCurrent = 0;
     _caffeineCurrent = 0;
+    _alcoholCurrent = 0;
     _todayLogs.clear();
     _allLogs.clear();
     _currentStreak = 0;
     _lifetimeOunces = 0;
-    _alcoholCurrent = 0;
     _lifetimeStandardDrinks = 0;
     _lifetimeDrinkCount = 0;
     notifyListeners();
   }
-  
-  void resetDay() {
+
+  Future<void> resetDay() async {
     if (_hydrationCurrent >= _hydrationGoal) {
       _currentStreak++;
       if (_currentStreak > _longestStreak) {
@@ -283,14 +284,33 @@ bool get hasHappyHourDrink {
     } else {
       _currentStreak = 0;
     }
-    
+
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId != null) {
+        final now = DateTime.now();
+        final startOfDay = DateTime(now.year, now.month, now.day).toUtc();
+        final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).toUtc();
+
+        await _supabase
+            .from('beverage_logs')
+            .delete()
+            .eq('user_id', userId)
+            .gte('logged_at', startOfDay.toIso8601String())
+            .lte('logged_at', endOfDay.toIso8601String());
+      }
+    } catch (e) {
+      debugPrint('Error deleting today logs from Supabase: $e');
+    }
+
     _hydrationCurrent = 0;
-    _alcoholCurrent = 0;
     _caffeineCurrent = 0;
+    _alcoholCurrent = 0;
     _todayLogs.clear();
+    _allLogs.clear();
     notifyListeners();
   }
-  
+
   // ===== OFFLINE QUEUE =====
 
   static const _kPendingLogsKey = 'pending_logs';
@@ -332,10 +352,7 @@ bool get hasHappyHourDrink {
     if (synced.isNotEmpty) notifyListeners();
   }
 
-  int get pendingLogCount {
-    // Sync check from SharedPreferences is async — use this for UI indication
-    return 0; // Updated after async check
-  }
+  int get pendingLogCount => 0;
 
   void setHydrationGoal(double goal) {
     if (goal > 0) {
@@ -343,10 +360,17 @@ bool get hasHappyHourDrink {
       notifyListeners();
     }
   }
-  
+
   void setCaffeineLimit(double limit) {
     if (limit > 0) {
       _caffeineLimit = limit;
+      notifyListeners();
+    }
+  }
+
+  void setAlcoholLimit(double limit) {
+    if (limit > 0) {
+      _alcoholLimit = limit;
       notifyListeners();
     }
   }
@@ -417,49 +441,55 @@ bool get hasHappyHourDrink {
 
   // ===== ALCOHOL STATS & ACHIEVEMENTS =====
 
-/// Total alcoholic drinks logged today (count)
-int get alcoholDrinkCountToday {
-  return _todayLogs
-      .where((log) => log['isAlcoholic'] as bool? ?? false)
-      .length;
-}
+  bool get hasHappyHourDrink {
+    for (final log in _todayLogs) {
+      final isAlcoholic = log['isAlcoholic'] as bool? ?? false;
+      if (!isAlcoholic) continue;
+      final ts = log['timestamp'] as String?;
+      if (ts == null) continue;
+      final dt = DateTime.tryParse(ts);
+      if (dt != null && dt.hour >= 16 && dt.hour < 19) return true;
+    }
+    return false;
+  }
 
-/// Whether the user stayed under their alcohol limit today
-bool get stayedUnderAlcoholLimit {
-  return _alcoholCurrent <= _alcoholLimit && alcoholDrinkCountToday > 0;
-}
+  int get alcoholDrinkCountToday {
+    return _todayLogs
+        .where((log) => log['isAlcoholic'] as bool? ?? false)
+        .length;
+  }
 
-/// Whether the user logged zero alcoholic drinks today
-bool get alcoholFreeDay {
-  return alcoholDrinkCountToday == 0 && _todayLogs.isNotEmpty;
-}
+  bool get stayedUnderAlcoholLimit {
+    return _alcoholCurrent <= _alcoholLimit && alcoholDrinkCountToday > 0;
+  }
 
-bool get responsibleDrinker {
-  return _alcoholCurrent > 0 && _alcoholCurrent <= 1.0;
-}
+  bool get alcoholFreeDay {
+    return alcoholDrinkCountToday == 0 && _todayLogs.isNotEmpty;
+  }
 
-bool get hydratedAndHappy {
-  return alcoholDrinkCountToday > 0 && hydrationProgress >= 1.0;
-}
+  bool get responsibleDrinker {
+    return _alcoholCurrent > 0 && _alcoholCurrent <= 1.0;
+  }
 
-int get uniqueAlcoholicDrinksToday {
-  final names = _todayLogs
-      .where((log) => log['isAlcoholic'] as bool? ?? false)
-      .map((log) => log['beverageName'] as String)
-      .toSet();
-  return names.length;
-}
+  bool get hydratedAndHappy {
+    return alcoholDrinkCountToday > 0 && hydrationProgress >= 1.0;
+  }
 
-bool get alcoholExplorer {
-  return uniqueAlcoholicDrinksToday >= 3;
-}
+  int get uniqueAlcoholicDrinksToday {
+    final names = _todayLogs
+        .where((log) => log['isAlcoholic'] as bool? ?? false)
+        .map((log) => log['beverageName'] as String)
+        .toSet();
+    return names.length;
+  }
 
-bool get overAlcoholLimit {
-  return _alcoholCurrent > _alcoholLimit;
-}
+  bool get alcoholExplorer {
+    return uniqueAlcoholicDrinksToday >= 3;
+  }
 
-double _lifetimeStandardDrinks = 0;
-double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
+  bool get overAlcoholLimit {
+    return _alcoholCurrent > _alcoholLimit;
+  }
 
   // ===== STATISTICS & ACHIEVEMENTS =====
 
@@ -474,18 +504,14 @@ double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
   int get weekendDaysCompleted {
     final now = DateTime.now();
     final isWeekend = now.weekday == DateTime.saturday || now.weekday == DateTime.sunday;
-    
-    if (isWeekend && _hydrationCurrent >= _hydrationGoal) {
-      return 1; // Today counts
-    }
+    if (isWeekend && _hydrationCurrent >= _hydrationGoal) return 1;
     return 0;
   }
 
   bool get weekendGoalsMet => weekendDaysCompleted >= 2;
 
   bool get isWaterOnlyDay {
-    if (_todayLogs.isEmpty) return true; // No drinks = technically water only
-    
+    if (_todayLogs.isEmpty) return true;
     for (final log in _todayLogs) {
       final name = (log['beverageName'] as String?)?.toLowerCase() ?? '';
       if (!name.contains('water')) return false;
@@ -495,7 +521,7 @@ double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
 
   bool get hasRapidLogs {
     if (_todayLogs.length < 3) return false;
-    
+
     final timestamps = <DateTime>[];
     for (final log in _todayLogs) {
       final ts = log['timestamp'] as String?;
@@ -503,10 +529,10 @@ double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
       final dt = DateTime.tryParse(ts);
       if (dt != null) timestamps.add(dt);
     }
-    
+
     if (timestamps.length < 3) return false;
     timestamps.sort((a, b) => a.compareTo(b));
-    
+
     for (int i = 0; i <= timestamps.length - 3; i++) {
       final diff = timestamps[i + 2].difference(timestamps[i]);
       if (diff.inMinutes <= 60) return true;
@@ -515,12 +541,11 @@ double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
   }
 
   int get hourlySlotsFilled {
-    final slots = [8, 10, 12, 14, 16, 18]; // Start hours for each slot
+    final slots = [8, 10, 12, 14, 16, 18];
     int filled = 0;
-    
+
     for (final slotStart in slots) {
       bool hasLogInSlot = false;
-      
       for (final log in _todayLogs) {
         final ts = log['timestamp'] as String?;
         if (ts == null) continue;
@@ -530,10 +555,9 @@ double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
           break;
         }
       }
-      
       if (hasLogInSlot) filled++;
     }
-    
+
     return filled;
   }
 
@@ -555,12 +579,4 @@ double get lifetimeStandardDrinks => _lifetimeStandardDrinks;
     }
     return count;
   }
-
-    void setAlcoholLimit(double limit) {
-      if (limit > 0) {
-        _alcoholLimit = limit;
-        notifyListeners();
-  }
-}
-
 }
