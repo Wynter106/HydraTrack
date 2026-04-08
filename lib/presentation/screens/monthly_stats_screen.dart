@@ -64,20 +64,12 @@ class MonthlyStatsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Daily Breakdown',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                ...stats.daily.map((d) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(_fmt(d.day)),
-                          Text('${d.hydrationOz.toStringAsFixed(1)} oz'),
-                          Text('${d.caffeineMg.toStringAsFixed(0)} mg'),
-                        ],
-                      ),
-                    )),
+                const Text(
+                  'Monthly Calendar View',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                _buildMonthlyCalendar(context, stats.daily, provider.hydrationGoal),
               ],
             ),
           ),
@@ -89,3 +81,103 @@ class MonthlyStatsScreen extends StatelessWidget {
   String _fmt(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
+
+Widget _buildMonthlyCalendar(
+  BuildContext context,
+  List<DayStats> daily,
+  double goalOz,
+) {
+  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final cells = _buildMonthlyGridData(daily);
+
+  return Column(
+    children: [
+      Row(
+        children: labels
+            .map(
+              (label) => Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+      const SizedBox(height: 8),
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: cells.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 7,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+          childAspectRatio: 0.6,
+        ),
+        itemBuilder: (context, index) {
+          final d = cells[index];
+          if (d == null) return const SizedBox.shrink();
+          return _buildMonthCell(context, d, goalOz);
+        },
+      ),
+    ],
+  );
+}
+
+List<DayStats?> _buildMonthlyGridData(List<DayStats> daily) {
+  if (daily.isEmpty) return [];
+
+  final firstDay = daily.first.day;
+  final weekdayOffset = firstDay.weekday - 1; // Monday=1 -> 0 offset
+
+  final result = <DayStats?>[];
+  for (int i = 0; i < weekdayOffset; i++) {
+    result.add(null);
+  }
+  result.addAll(daily);
+  return result;
+}
+
+Widget _buildMonthCell(BuildContext context, DayStats d, double goalOz) {
+  final metGoal = d.hydrationOz >= goalOz;
+  final isToday = _dayOnly(d.day) == _dayOnly(DateTime.now());
+
+  final bgColor = metGoal
+      ? Colors.blue.withValues(alpha: 0.12)
+      : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35);
+
+  final borderColor = isToday
+      ? Theme.of(context).colorScheme.primary
+      : Colors.transparent;
+
+  return Container(
+    padding: const EdgeInsets.all(6),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: borderColor, width: isToday ? 1.5 : 0),
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '${d.day.day}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${d.hydrationOz.toStringAsFixed(0)} oz',
+          style: const TextStyle(fontSize: 10),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  );
+}
+
+DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);

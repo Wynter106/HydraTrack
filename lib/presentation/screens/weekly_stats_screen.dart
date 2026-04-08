@@ -69,21 +69,11 @@ class WeeklyStatsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Daily Breakdown',
+                  'Weekly Calendar View',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 8),
-                ...stats.daily.map((d) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(_fmt(d.day)),
-                          Text('${d.hydrationOz.toStringAsFixed(1)} oz'),
-                          Text('${d.caffeineMg.toStringAsFixed(0)} mg'),
-                        ],
-                      ),
-                    )),
+                const SizedBox(height: 12),
+                _buildWeeklyCalendar(context, stats.daily, provider.hydrationGoal),
               ],
             ),
           ),
@@ -95,3 +85,96 @@ class WeeklyStatsScreen extends StatelessWidget {
   String _fmt(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
+
+Widget _buildWeeklyCalendar(
+  BuildContext context,
+  List<DayStats> daily,
+  double goalOz,
+) {
+  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  return Column(
+    children: [
+      Row(
+        children: labels
+            .map(
+              (label) => Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: daily
+            .map(
+              (d) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: _buildDayCell(context, d, goalOz),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    ],
+  );
+}
+
+Widget _buildDayCell(BuildContext context, DayStats d, double goalOz) {
+  final metGoal = d.hydrationOz >= goalOz;
+  final isToday = _dayOnly(d.day) == _dayOnly(DateTime.now());
+
+  final bgColor = metGoal
+      ? Colors.blue.withValues(alpha: 0.12)
+      : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
+
+  final borderColor = isToday
+      ? Theme.of(context).colorScheme.primary
+      : Colors.transparent;
+
+  return Container(
+    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: borderColor, width: isToday ? 1.5 : 0),
+    ),
+    child: Column(
+      children: [
+        Text(
+          '${d.day.day}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '${d.hydrationOz.toStringAsFixed(0)} oz',
+          style: const TextStyle(fontSize: 11),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${d.caffeineMg.toStringAsFixed(0)} mg',
+          style: Theme.of(context).textTheme.bodySmall,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Icon(
+          metGoal ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 16,
+          color: metGoal ? Colors.blue : Colors.grey,
+        ),
+      ],
+    ),
+  );
+}
+
+DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
