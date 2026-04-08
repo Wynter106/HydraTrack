@@ -24,6 +24,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen>
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
+  final ScrollController _allDrinksScrollController = ScrollController();
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen>
   void dispose() {
     _searchController.dispose();
     _tabController.dispose();
+    _allDrinksScrollController.dispose();
     super.dispose();
   }
 
@@ -76,16 +78,30 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen>
     await provider.loadFavorites();
   }
 
-  // Filter the beverage list based on the search query
+  // Filter the beverage list based on the search query (fuzzy: word-split, case-insensitive)
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value.trim().toLowerCase();
-      filteredBeverages = _searchQuery.isEmpty
-          ? beverages
-          : beverages.where((bev) {
-              return bev.name.toLowerCase().contains(_searchQuery);
-            }).toList();
+      if (_searchQuery.isEmpty) {
+        filteredBeverages = beverages;
+      } else {
+        final words = _searchQuery.split(RegExp(r'\s+'));
+        filteredBeverages = beverages.where((bev) {
+          final name = bev.name.toLowerCase();
+          return words.every((word) => name.contains(word));
+        }).toList();
+      }
     });
+  }
+
+  // Build letter → first-item-index map for alphabetical sidebar
+  Map<String, int> _buildLetterIndex(List<Beverage> list) {
+    final map = <String, int>{};
+    for (int i = 0; i < list.length; i++) {
+      final ch = list[i].name.isEmpty ? '#' : list[i].name[0].toUpperCase();
+      map.putIfAbsent(ch, () => i);
+    }
+    return map;
   }
 
   // Get the corresponding Material Icon based on the icon name string
@@ -158,16 +174,12 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen>
                   : TabBarView(
                       controller: _tabController,
                       children: [
-                        // First Tab: All Drinks
-                        _buildDrinkList(
-                          filteredBeverages, 
-                          favProvider, 
-                          emptyMessage: 'No drinks match your search',
-                        ),
+                        // First Tab: All Drinks (with alphabetical index sidebar)
+                        _buildAllDrinksTab(filteredBeverages, favProvider),
                         // Second Tab: Favorites Only
                         _buildDrinkList(
-                          favoriteBeverages, 
-                          favProvider, 
+                          favoriteBeverages,
+                          favProvider,
                           emptyMessage: 'No favorites yet.\nTap the star to add some!',
                         ),
                       ],
@@ -175,6 +187,90 @@ class _DrinkLibraryScreenState extends State<DrinkLibraryScreen>
             ),
           ],
         ),
+    );
+  }
+
+  // All Drinks tab: ListView with alphabetical sidebar on the right
+  Widget _buildAllDrinksTab(List<Beverage> drinkList, FavoriteDrinksProvider favProvider) {
+    if (drinkList.isEmpty) {
+      return Center(
+        child: Text(
+          'No drinks match your search',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+        ),
+      );
+    }
+
+    final letterIndex = _buildLetterIndex(drinkList);
+
+    return Stack(
+      children: [
+        Scrollbar(
+          controller: _allDrinksScrollController,
+          child: ListView.builder(
+            controller: _allDrinksScrollController,
+            padding: const EdgeInsets.only(left: 16, right: 48, bottom: 80),
+            itemCount: drinkList.length,
+            itemBuilder: (context, index) {
+              final bev = drinkList[index];
+              final favorite = favProvider.favorites
+                  .where((f) => f.beverageName == bev.name)
+                  .firstOrNull;
+              return _buildBeverageCard(bev, favorite, favProvider);
+            },
+          ),
+        ),
+        Positioned(
+          right: 4,
+          top: 8,
+          bottom: 8,
+          child: _buildAlphaSidebar(letterIndex, drinkList.length),
+        ),
+      ],
+    );
+  }
+
+  // Alphabetical A-Z sidebar for quick jumping
+  Widget _buildAlphaSidebar(Map<String, int> letterIndex, int totalCount) {
+    final letters = letterIndex.keys.toList()..sort();
+    final colors = Theme.of(context).colorScheme;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemHeight = (constraints.maxHeight / letters.length).clamp(14.0, 22.0);
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: letters.map((letter) {
+            return GestureDetector(
+              onTap: () {
+                if (!_allDrinksScrollController.hasClients) return;
+                final index = letterIndex[letter]!;
+                final maxExtent = _allDrinksScrollController.position.maxScrollExtent;
+                final offset = (index / totalCount) * maxExtent;
+                _allDrinksScrollController.animateTo(
+                  offset,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                );
+              },
+              child: Container(
+                width: 22,
+                height: itemHeight,
+                alignment: Alignment.center,
+                child: Text(
+                  letter,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: colors.primary,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 

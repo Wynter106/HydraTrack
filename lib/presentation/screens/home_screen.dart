@@ -235,6 +235,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
 
+            // ==================== AI ANALYSIS ====================
+            _buildAiCard(),
+
+            const SizedBox(height: 16),
+
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,11 +282,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // ==================== AI ANALYSIS ====================
-            _buildAiCard(),
 
             const SizedBox(height: 24),
 
