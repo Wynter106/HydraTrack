@@ -156,24 +156,31 @@ Widget _buildMonthCell(BuildContext context, DayStats d, double goalOz) {
       : Colors.transparent;
 
   return Container(
-    padding: const EdgeInsets.all(6),
+    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
     decoration: BoxDecoration(
       color: bgColor,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       border: Border.all(color: borderColor, width: isToday ? 1.5 : 0),
     ),
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '${d.day.day}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '${d.day.day}',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          '${d.hydrationOz.toStringAsFixed(0)} oz',
-          style: const TextStyle(fontSize: 10),
-          textAlign: TextAlign.center,
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '${d.hydrationOz.toStringAsFixed(0)} oz',
+            style: const TextStyle(fontSize: 10),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     ),
