@@ -102,14 +102,14 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed architecture notes, feature st
 
 ---
 
-## Scientific Basis
+## Purpose & Disclaimer
 
-Hydration factors are derived from:
+HydraTrack is designed as a **wellness and habit-building tool** — not a medical or clinical application. The hydration factors assigned to each beverage are simplified approximations intended to encourage healthier drink choices, not precise physiological measurements.
 
-> Maughan et al. (2016). *A randomized trial to assess the potential of different beverages to affect hydration status: development of a beverage hydration index.* The American Journal of Clinical Nutrition, 103(3), 717–723.
+The app is not a substitute for medical advice. Users with specific health conditions should consult a healthcare professional regarding their hydration needs.
 
-| Drink type | Hydration factor |
-|------------|-----------------|
+| Drink type | Hydration factor (approximate) |
+|------------|--------------------------------|
 | Water | 1.00 |
 | Tea / Light coffee | 0.90–0.95 |
 | Regular coffee | 0.80–0.85 |
