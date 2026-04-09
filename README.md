@@ -1,24 +1,38 @@
 # HydraTrack
 
-A science-backed hydration and wellness tracking app built with Flutter for CS 4500 Senior Design Capstone at the University of Utah.
+**Smarter hydration tracking — not just fluid volume.**
 
-Most hydration apps treat every drink the same. HydraTrack applies a **Beverage Hydration Index** to each drink — meaning a cup of coffee contributes less toward your daily goal than a glass of water, and an energy drink contributes even less. This gives users a more accurate picture of actual hydration rather than just fluid volume consumed.
+> Website & Tutorial: **[wynter106.github.io/HydraTrack](https://wynter106.github.io/HydraTrack/)**
+> Download APK: **[Google Drive](https://drive.google.com/uc?export=download&id=1wfZt2eirbZEF-Ru0Nwcwn8dekk1CB4uR)**
+
+---
+
+Most hydration apps count every drink the same. HydraTrack applies a **Beverage Hydration Index** to each drink — coffee contributes less toward your daily goal than water, and an energy drink even less. The result is an accurate picture of your actual hydration, not just the total fluid you consumed.
+
+Built as a CS 4500 Senior Design Capstone project at the University of Utah.
+
+---
+
+## Screenshots
+
+| Home | Today's Log | Goals & Badges | Monthly Stats |
+|------|-------------|----------------|---------------|
+| ![Home](docs/images/hydratrack_home.jpg) | ![Log](docs/images/hydratrack_log.jpg) | ![Goals](docs/images/hydratrack_goal.jpg) | ![Monthly](docs/images/hydratrack_monthly.jpg) |
 
 ---
 
 ## Features
 
-- **Hydration tracking** with per-drink hydration factor (based on caffeine diuretic effect)
-- **Caffeine tracking** with FDA-based daily limit and real-time progress
-- **Alcohol tracking** with standard drink calculation
-- **AI-powered daily insight** — personalized hydration tip generated from your day's data
-- **Drink library** — 630+ beverages with search, favorites, and Quick Add
-- **Weekly and monthly stats** — calendar heat-map view of goal achievement
-- **Goals and badges** — streak tracking, milestone achievements
-- **Medication reminders** — scheduled notifications (iOS + Android)
-- **Offline support** — logs queued locally and synced when back online
-- **Dark mode** support
-- **Unit toggle** — oz / mL
+- **Hydration Factor** — each drink weighted by real hydration contribution (caffeine diuretic effect)
+- **Caffeine Tracking** — daily limit with real-time progress and warning
+- **Alcohol Tracking** — standard drink calculation with 100+ beverages
+- **AI Daily Insight** — personalized hydration tip from your actual data (Groq / LLaMA 3)
+- **Drink Library** — 630+ beverages, fully searchable, with favorites and Quick Add
+- **Weekly & Monthly Stats** — calendar heat-map showing days you hit your goal
+- **Goals & Badges** — streak tracking and milestone achievements
+- **Medication Reminders** — scheduled push notifications
+- **Offline Support** — logs queued locally and synced on reconnect
+- **Dark Mode** and **oz / mL toggle**
 
 ---
 
@@ -32,7 +46,7 @@ Most hydration apps treat every drink the same. HydraTrack applies a **Beverage 
 | State Management | Provider |
 | Offline Cache | SharedPreferences + local JSON queue |
 | AI Analysis | Groq API (`llama-3.3-70b-versatile`) |
-| Notifications | flutter_local_notifications (Android + iOS) |
+| Notifications | flutter_local_notifications |
 
 ---
 
@@ -43,7 +57,7 @@ Most hydration apps treat every drink the same. HydraTrack applies a **Beverage 
 | Wynter | Team lead, database design, Supabase architecture, core tracking logic |
 | Douglas | Log screen UI, analytics screens |
 | JungBin (Moon) | UI/UX, theming, medication reminder feature |
-| Wilker | Settings, goals, alcohol tracking feature, dark mode |
+| Wilker | Settings, goals, alcohol tracking, dark mode |
 
 ---
 
@@ -52,30 +66,23 @@ Most hydration apps treat every drink the same. HydraTrack applies a **Beverage 
 ### Prerequisites
 
 - Flutter SDK 3.x
-- Dart 3.x
-- A Supabase project (for auth and cloud sync)
-- A Groq API key (for AI insight feature)
+- A Supabase project (auth + cloud sync)
+- A Groq API key (AI insight feature)
 
 ### Setup
 
 1. Clone the repository
-2. Create `lib/config/secrets.dart` with your API keys (see `secrets.dart.example` if provided)
+2. Create `lib/config/secrets.dart` with your API keys
 3. Run `flutter pub get`
 4. Run `flutter run`
 
-> **Note:** `lib/config/secrets.dart` and `key.properties` are gitignored and must be created locally.
+> `lib/config/secrets.dart` and `key.properties` are gitignored and must be created locally.
 
 ### Build
 
 ```bash
-# Debug APK
-flutter build apk --debug
-
-# Release APK
-flutter build apk --release
-
-# iOS (requires Mac + Xcode)
-flutter build ios
+flutter build apk --debug    # Debug APK
+flutter build apk --release  # Release APK
 ```
 
 ### Tests
@@ -89,7 +96,7 @@ flutter analyze
 
 ## Architecture
 
-The project follows a 4-layer architecture:
+4-layer architecture:
 
 ```
 Presentation    →  lib/presentation/screens/  lib/presentation/widgets/
@@ -98,18 +105,16 @@ Business Logic  →  lib/business/calculators/  lib/business/services/
 Data            →  lib/data/dao/  lib/data/models/
 ```
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed architecture notes, feature status, and known issues.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed notes, feature status, and known issues.
 
 ---
 
-## Purpose & Disclaimer
+## Disclaimer
 
-HydraTrack is designed as a **wellness and habit-building tool** — not a medical or clinical application. The hydration factors assigned to each beverage are simplified approximations intended to encourage healthier drink choices, not precise physiological measurements.
+HydraTrack is a **wellness and habit-building tool**, not a medical application. Hydration factors are simplified approximations intended to encourage healthier choices, not precise physiological measurements.
 
-The app is not a substitute for medical advice. Users with specific health conditions should consult a healthcare professional regarding their hydration needs.
-
-| Drink type | Hydration factor (approximate) |
-|------------|--------------------------------|
+| Drink type | Hydration factor |
+|------------|-----------------|
 | Water | 1.00 |
 | Tea / Light coffee | 0.90–0.95 |
 | Regular coffee | 0.80–0.85 |
