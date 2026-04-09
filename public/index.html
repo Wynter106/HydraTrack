@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HydraTrack</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+      </svg>
+      HydraTrack
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="active">About</a>
+      <a href="team.html">Team</a>
+      <a href="tutorial.html">Tutorial</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-drop">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+      </svg>
+    </div>
+    <span class="label">CS 4500 Senior Design — University of Utah</span>
+    <h1>Smarter hydration.<br><span>Not just fluid volume.</span></h1>
+    <p>HydraTrack calculates your actual hydration by accounting for each drink's caffeine content — because coffee and water are not the same.</p>
+    <div class="hero-btns">
+      <a href="tutorial.html" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Get Started
+      </a>
+      <a href="#download" class="btn btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Download APK
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section>
+  <div class="container">
+    <span class="label">The App</span>
+    <h2>Everything in one place</h2>
+    <div class="screenshots">
+      <div class="phone-frame">
+        <img src="images/screenshot-home.png" alt="Home screen" />
+        <div class="ph-label">Home</div>
+      </div>
+      <div class="phone-frame">
+        <img src="images/screenshot-log.png" alt="Today's Log" />
+        <div class="ph-label">Today's Log</div>
+      </div>
+      <div class="phone-frame">
+        <img src="images/screenshot-goals.png" alt="Goals & Badges" />
+        <div class="ph-label">Goals & Badges</div>
+      </div>
+      <div class="phone-frame">
+        <img src="images/screenshot-monthly.png" alt="Monthly Stats" />
+        <div class="ph-label">Monthly Stats</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section>
+  <div class="container">
+    <span class="label">Features</span>
+    <h2>Built around how your body actually hydrates</h2>
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+        </div>
+        <h3>Hydration Factor</h3>
+        <p>Each drink is weighted by its real hydration contribution. Coffee counts less than water. Energy drinks count even less.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
+        </div>
+        <h3>Caffeine Tracking</h3>
+        <p>Monitor your daily caffeine intake alongside hydration. Get a warning when you're approaching your personal limit.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <h3>AI Insight</h3>
+        <p>Get a personalized hydration tip generated from your actual data — drink patterns, goal progress, streak, and more.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+        </div>
+        <h3>Weekly & Monthly Stats</h3>
+        <p>Calendar heat-map views show your goal achievement at a glance — colored cells for days you hit your target.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        </div>
+        <h3>Alcohol Tracking</h3>
+        <p>Log alcoholic beverages and track standard drinks per session. Supports 100+ drinks with ABV-based calculations.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+        </div>
+        <h3>Works Offline</h3>
+        <p>Log drinks even without a connection. Logs are queued locally and synced to the cloud automatically when you're back online.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- DRINK LIBRARY -->
+<section>
+  <div class="container">
+    <span class="label">Drink Library</span>
+    <h2>630+ drinks, fully searchable</h2>
+    <p style="max-width:560px; margin-bottom:32px;">Browse a curated library of beverages — each with its caffeine content and hydration factor pre-calculated. Add custom drinks, save favorites, and set up Quick Add shortcuts for your go-to drinks.</p>
+    <div class="screenshots">
+      <div class="phone-frame">
+        <img src="images/screenshot-library.png" alt="Drink Library" />
+        <div class="ph-label">Drink Library</div>
+      </div>
+      <div class="phone-frame">
+        <img src="images/screenshot-alcohol.png" alt="Alcohol Library" />
+        <div class="ph-label">Alcohol Library</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download">
+  <div class="container" style="text-align:center;">
+    <span class="label">Download</span>
+    <h2>Try it on Android</h2>
+    <p style="max-width:480px; margin: 12px auto 32px;">Download the debug APK and install it directly on your Android device. Enable "Install from unknown sources" in your device settings if prompted.</p>
+    <a href="HydraTrack.apk" class="btn btn-primary" download>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      Download APK
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>HydraTrack &mdash; CS 4500 Senior Design, University of Utah &mdash; Spring 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
