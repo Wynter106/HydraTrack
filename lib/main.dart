@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,6 +26,10 @@ import 'business/services/connectivity_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Edge-to-edge: 시스템 네비게이션 바 영역까지 앱이 그려지도록 설정
+  // Scaffold의 bottomNavigationBar가 자동으로 inset 처리함
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   await Supabase.initialize(
     url: 'https://gzpqnwhfkemioshwycul.supabase.co',
