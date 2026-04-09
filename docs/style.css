@@ -213,6 +213,7 @@ p  { color: var(--text2); }
   overflow: hidden;
 }
 .team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-avatar-photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .team-info h3 { font-size: 1.1rem; margin-bottom: 2px; }
 .team-role { font-size: 0.8rem; color: var(--accent); font-weight: 600; margin-bottom: 12px; }
 .team-bio { font-size: 0.88rem; color: var(--text2); margin-bottom: 14px; }
