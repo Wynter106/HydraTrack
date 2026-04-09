@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tutorial — HydraTrack</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .phone-frame img { width: 100%; height: auto; display: block; }
+    .step-visual { align-items: flex-start; }
+  </style>
 </head>
 <body>
 
@@ -28,7 +32,7 @@
   <div class="container">
     <span class="label">User Guide</span>
     <h1 style="font-size: 2rem;">Getting started with HydraTrack</h1>
-    <p style="max-width: 560px; margin-top: 12px;">Follow these five steps to set up your account and start tracking your hydration. The whole process takes under two minutes.</p>
+    <p style="max-width: 560px; margin-top: 12px;">Follow these steps to set up your account and start tracking your hydration. The whole process takes under two minutes.</p>
   </div>
 </section>
 
@@ -36,112 +40,125 @@
   <div class="container">
     <div class="tutorial-steps">
 
-      <!-- STEP 1 -->
+      <!-- STEP 1: Create Account -->
       <div class="step">
         <div class="step-text">
           <div class="step-num">1</div>
           <h3>Create your account</h3>
-          <p>First-time users are taken directly to the Sign Up screen. Enter your email and a password to create your account.</p>
+          <p>First-time users are taken directly to the Sign Up screen. Enter your email and a password to get started.</p>
           <ul>
-            <li>New install opens Sign Up automatically</li>
+            <li>New installs open Sign Up automatically</li>
             <li>Already have an account? Tap <strong>Log in</strong> at the bottom</li>
             <li>Your data syncs across devices via the cloud</li>
           </ul>
         </div>
         <div class="step-visual">
           <div class="phone-frame">
-            <img src="images/screenshot-signup.png" alt="Sign Up screen" />
+            <img src="images/hydratrack_signup.jpg" alt="Sign Up" />
             <div class="ph-label">Sign Up</div>
           </div>
           <div class="phone-frame">
-            <img src="images/screenshot-login.png" alt="Log In screen" />
+            <img src="images/hydratrack_login.jpg" alt="Log In" />
             <div class="ph-label">Log In</div>
           </div>
         </div>
       </div>
 
-      <!-- STEP 2 -->
+      <!-- STEP 2: Profile Setup -->
       <div class="step">
         <div class="step-text">
           <div class="step-num">2</div>
           <h3>Set up your profile</h3>
-          <p>Enter your age, height, and weight. HydraTrack automatically calculates your personalized daily hydration goal and caffeine limit.</p>
+          <p>Enter your age, height, and weight. HydraTrack automatically calculates your daily hydration goal and caffeine limit.</p>
           <ul>
-            <li>Hydration goal is based on your body weight (×33 ml/kg)</li>
+            <li>Hydration goal is based on body weight (×33 ml/kg)</li>
             <li>Caffeine limit adjusts based on your age</li>
             <li>Supports oz/mL and lb/kg — switch any time in Settings</li>
-            <li>You can update these values later under Settings → Edit Profile</li>
+            <li>Update these values later under Settings → Edit Profile</li>
           </ul>
         </div>
         <div class="step-visual">
           <div class="phone-frame">
-            <img src="images/screenshot-profile.png" alt="Profile Setup screen" />
+            <img src="images/hydratrack_setup.jpg" alt="Profile Setup" />
             <div class="ph-label">Profile Setup</div>
           </div>
         </div>
       </div>
 
-      <!-- STEP 3 -->
+      <!-- STEP 3: Log Drinks -->
       <div class="step">
         <div class="step-text">
           <div class="step-num">3</div>
           <h3>Log your drinks</h3>
-          <p>From the home screen, tap any drink in the Quick Add grid to instantly log it. For more options, tap <strong>More</strong> to browse the full drink library.</p>
+          <p>From the home screen, tap any drink in the Quick Add grid to instantly log it. Tap <strong>More</strong> to browse the full drink library.</p>
           <ul>
-            <li>Quick Add shows your favorite drinks for one-tap logging</li>
+            <li>Quick Add shows your saved favorites for one-tap logging</li>
             <li>Tap <strong>Manage</strong> to customize which drinks appear</li>
-            <li>Drink library has 630+ beverages — searchable by name</li>
-            <li>Can't find your drink? Add a custom one with the + button</li>
+            <li>Drink library has 630+ beverages — search by name</li>
+            <li>The AI Insight card gives personalized hydration tips based on your data</li>
           </ul>
         </div>
         <div class="step-visual">
           <div class="phone-frame">
-            <img src="images/screenshot-home.png" alt="Home screen" />
+            <img src="images/hydratrack_home.jpg" alt="Home Screen" />
             <div class="ph-label">Home</div>
+          </div>
+          <div class="phone-frame">
+            <img src="images/hydratrack_drink_library.jpg" alt="Drink Library" />
+            <div class="ph-label">Drink Library</div>
           </div>
         </div>
       </div>
 
-      <!-- STEP 4 -->
+      <!-- STEP 4: Customize -->
       <div class="step">
         <div class="step-text">
           <div class="step-num">4</div>
+          <h3>Create your own drink list</h3>
+          <p>Build a personal drink list from the library. Star a drink to instantly save it as a favorite — no extra steps needed.</p>
+          <ul>
+            <li><strong>Tap the star</strong> on any drink to immediately add it to your favorites</li>
+            <li>Starred drinks appear in your Favorites tab and can be set as Quick Add shortcuts — all from one tap</li>
+            <li>Tap the <strong>pencil icon</strong> to further customize: change the icon, adjust the default volume, or toggle Quick Add on/off</li>
+            <li>Can't find your drink? Tap <strong>+ Custom Drink</strong> to add your own with a custom name, size, and caffeine content</li>
+          </ul>
+        </div>
+        <div class="step-visual">
+          <div class="phone-frame">
+            <img src="images/hydratrack_edit_favorite.jpg" alt="Edit Favorite" />
+            <div class="ph-label">Edit Favorite</div>
+          </div>
+          <div class="phone-frame">
+            <img src="images/hydratrack_add_custom.jpg" alt="Add Custom Drink" />
+            <div class="ph-label">Custom Drink</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5: Track Progress -->
+      <div class="step">
+        <div class="step-text">
+          <div class="step-num">5</div>
           <h3>Track your progress</h3>
           <p>Tap <strong>Log</strong> in the bottom navigation to see everything you've logged today, with the hydration factor applied to each drink.</p>
           <ul>
             <li>Each entry shows actual hydration contributed, not just fluid volume</li>
             <li>Coffee at factor 0.75 means 8 oz counts as 6 oz toward your goal</li>
-            <li>Tap the trash icon to remove any entry</li>
-            <li>Tap <strong>Weekly</strong> or <strong>Monthly</strong> for historical views</li>
+            <li>Tap <strong>Weekly</strong> or <strong>Monthly</strong> to see historical calendar views</li>
+            <li>Calendar cells turn blue on days you hit your goal</li>
           </ul>
         </div>
         <div class="step-visual">
           <div class="phone-frame">
-            <img src="images/screenshot-log.png" alt="Today's Log" />
+            <img src="images/hydratrack_log.jpg" alt="Today's Log" />
             <div class="ph-label">Today's Log</div>
           </div>
-        </div>
-      </div>
-
-      <!-- STEP 5 -->
-      <div class="step">
-        <div class="step-text">
-          <div class="step-num">5</div>
-          <h3>View stats and earn badges</h3>
-          <p>The <strong>Goals</strong> tab shows your current badges and progress. The monthly calendar highlights every day you met your hydration goal.</p>
-          <ul>
-            <li>Badges unlock as you build streaks and hit milestones</li>
-            <li>Calendar cells turn blue on days you hit your goal</li>
-            <li>Today's date is highlighted with a border</li>
-          </ul>
-        </div>
-        <div class="step-visual">
           <div class="phone-frame">
-            <img src="images/screenshot-goals.png" alt="Goals & Badges" />
-            <div class="ph-label">Goals</div>
+            <img src="images/hydratrack_weekly.jpg" alt="Weekly Stats" />
+            <div class="ph-label">Weekly Stats</div>
           </div>
           <div class="phone-frame">
-            <img src="images/screenshot-monthly.png" alt="Monthly Stats" />
+            <img src="images/hydratrack_monthly.jpg" alt="Monthly Stats" />
             <div class="ph-label">Monthly Stats</div>
           </div>
         </div>
@@ -149,24 +166,45 @@
 
     </div>
 
-    <!-- BONUS -->
+    <!-- BONUS SECTION -->
     <div style="background: var(--bg2); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 32px; margin-top: 16px;">
-      <span class="label">Bonus</span>
-      <h3 style="font-size: 1.2rem; margin-bottom: 12px;">Customize in Settings</h3>
-      <p style="margin-bottom: 20px;">Tap <strong>Settings</strong> in the bottom navigation to change your theme, set up daily drink reminders, or edit your profile.</p>
-      <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start;">
-        <div class="phone-frame" style="width: 150px;">
-          <img src="images/screenshot-settings.png" alt="Settings" />
+      <span class="label">More Features</span>
+      <h3 style="font-size: 1.2rem; margin-bottom: 20px;">Goals, Alcohol Tracking & Settings</h3>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+        <div class="phone-frame" style="width: 160px; flex-shrink:0;">
+          <img src="images/hydratrack_goal.jpg" alt="Goals & Badges" />
+          <div class="ph-label">Goals & Badges</div>
+        </div>
+        <div class="phone-frame" style="width: 160px; flex-shrink:0;">
+          <img src="images/hydratrack_alchohol_library.jpg" alt="Alcohol Library" />
+          <div class="ph-label">Alcohol Library</div>
+        </div>
+        <div class="phone-frame" style="width: 160px; flex-shrink:0;">
+          <img src="images/hydratrack_settings.jpg" alt="Settings" />
           <div class="ph-label">Settings</div>
         </div>
-        <div style="flex: 1; min-width: 220px;">
-          <ul class="step-text" style="display:block;">
-            <ul>
-              <li>Switch between Light, Dark, or System theme</li>
-              <li>Enable daily hydration reminders with a custom time</li>
-              <li>Enable medication reminders</li>
-              <li>Edit profile: update weight, height, or unit preference</li>
-            </ul>
+        <div style="flex: 1; min-width: 200px; padding-top: 8px;">
+          <ul style="list-style:none; padding:0;">
+            <li style="color:var(--text2); font-size:0.92rem; padding:5px 0 5px 20px; position:relative;">
+              <span style="position:absolute;left:0;color:var(--accent);">→</span>
+              Earn badges as you build hydration streaks and hit milestones
+            </li>
+            <li style="color:var(--text2); font-size:0.92rem; padding:5px 0 5px 20px; position:relative;">
+              <span style="position:absolute;left:0;color:var(--accent);">→</span>
+              Track alcohol intake with standard drink calculations
+            </li>
+            <li style="color:var(--text2); font-size:0.92rem; padding:5px 0 5px 20px; position:relative;">
+              <span style="position:absolute;left:0;color:var(--accent);">→</span>
+              Switch between Light, Dark, or System theme
+            </li>
+            <li style="color:var(--text2); font-size:0.92rem; padding:5px 0 5px 20px; position:relative;">
+              <span style="position:absolute;left:0;color:var(--accent);">→</span>
+              Set daily drink and medication reminders
+            </li>
+            <li style="color:var(--text2); font-size:0.92rem; padding:5px 0 5px 20px; position:relative;">
+              <span style="position:absolute;left:0;color:var(--accent);">→</span>
+              Edit your profile and unit preferences any time
+            </li>
           </ul>
         </div>
       </div>
@@ -179,7 +217,7 @@
   <div class="container">
     <h2>Ready to start?</h2>
     <p style="margin: 12px auto 28px; max-width: 400px;">Download the app and start tracking in under two minutes.</p>
-    <a href="HydraTrack.apk" class="btn btn-primary" download>
+    <a href="https://drive.google.com/uc?export=download&id=1wfZt2eirbZEF-Ru0Nwcwn8dekk1CB4uR" class="btn btn-primary">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
       Download APK
     </a>
