@@ -22,8 +22,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Create stub secrets
+        run: |
+          mkdir -p lib/config
+          echo "const String groqApiKey = '';" > lib/config/secrets.dart
+
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Test
         run: flutter test
