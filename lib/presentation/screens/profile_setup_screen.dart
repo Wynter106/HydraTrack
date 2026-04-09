@@ -241,7 +241,8 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
           : AppBar(title: Text('Edit Profile')),
       body: _loading
           ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : SafeArea(
+              child: SingleChildScrollView(
               padding: EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -511,6 +512,7 @@ class ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ],
               ),
             ),
+          ),
     );
   }
 }
