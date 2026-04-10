@@ -55,8 +55,8 @@ Built as a CS 4500 Senior Design Capstone project at the University of Utah.
 | Name | Responsibilities |
 |------|-----------------|
 | Wynter | Team lead, database design, Supabase architecture, core tracking logic |
-| Douglas | Log screen UI, analytics screens |
-| JungBin (Moon) | UI/UX, theming, medication reminder feature |
+| Douglas | Log screen UI, analytics screens, alcohol tracking |
+| JungBin (Moon) | UI, monthly/weekly view, medication reminder feature |
 | Wilker | Settings, goals, alcohol tracking, dark mode |
 
 ---
