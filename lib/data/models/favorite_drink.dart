@@ -11,6 +11,7 @@ class FavoriteDrink {
   final double? customVolumeOz;
   final int displayOrder;
   final bool isQuickAdd;
+  final bool isAlcoholList;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +24,7 @@ class FavoriteDrink {
     this.customVolumeOz,
     required this.displayOrder,
     required this.isQuickAdd,
+    this.isAlcoholList = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -40,6 +42,7 @@ class FavoriteDrink {
       customVolumeOz: (map['custom_volume_oz'] as num?)?.toDouble(),
       displayOrder: map['display_order'] as int? ?? 0,
       isQuickAdd: map['is_quick_add'] as bool? ?? false,
+      isAlcoholList: map['is_alcohol_list'] as bool? ?? false, 
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -54,6 +57,7 @@ class FavoriteDrink {
       'custom_volume_oz': customVolumeOz,
       'display_order': displayOrder,
       'is_quick_add': isQuickAdd,
+      'is_alcohol_list': isAlcoholList,
     };
   }
 
@@ -66,6 +70,7 @@ class FavoriteDrink {
     double? customVolumeOz,
     int? displayOrder,
     bool? isQuickAdd,
+    bool? isAlcoholList,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -78,6 +83,7 @@ class FavoriteDrink {
       customVolumeOz: customVolumeOz ?? this.customVolumeOz,
       displayOrder: displayOrder ?? this.displayOrder,
       isQuickAdd: isQuickAdd ?? this.isQuickAdd,
+      isAlcoholList: isAlcoholList ?? this.isAlcoholList,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

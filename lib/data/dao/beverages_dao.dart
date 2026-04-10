@@ -92,29 +92,99 @@ class BeverageDao {
   }
 
   Future<List<Beverage>> getAllAlcoholicBeverages() async {
-    final supabase = Supabase.instance.client;
-    try {
-      final response = await supabase
-          .from('alcohol_beverages')
+  final supabase = Supabase.instance.client;
+  final userId = supabase.auth.currentUser?.id;
+
+  try {
+    // Fetch from shared alcohol reference table
+    final libResults = await supabase
+        .from('alcohol_beverages')
+        .select()
+        .order('name', ascending: true);
+
+    final libraryBevs = (libResults as List).map((map) {
+      return Beverage.fromMap({
+        'id': map['id'],
+        'name': map['name'],
+        'caffeine_per_oz': 0.0,
+        'hydration_factor': -0.5,
+        'default_volume_oz': map['serving_size_oz'] ?? 12,
+        'is_alcoholic': true,
+        'abv': map['abv'],
+        'serving_size_oz': map['serving_size_oz'],
+      });
+    }).toList();
+
+    // Also fetch user's custom alcoholic drinks  ← NEW
+    List<Beverage> customBevs = [];
+    if (userId != null) {
+      final customResults = await supabase
+          .from('custom_beverages')
           .select()
+          .eq('user_id', userId)
+          .eq('is_alcoholic', true)
           .order('name', ascending: true);
 
-      return (response as List).map((map) {
-        return Beverage.fromMap({
-          'id': map['id'],
-          'name': map['name'],
-          'caffeine_per_oz': 0.0,
-          'hydration_factor': -0.5,
-          'default_volume_oz': map['serving_size_oz'] ?? 12,
-          'is_alcoholic': true,
-          'abv': map['abv'],
-          'serving_size_oz': map['serving_size_oz'],
-        });
-      }).toList();
-    } catch (e) {
-      return [];
+      customBevs = (customResults as List)
+          .map((map) => Beverage.fromMap(map))
+          .toList();
     }
+
+    // Custom drinks first so user sees their own at the top
+    return [...customBevs, ...libraryBevs];
+
+  } catch (e) {
+    return [];
   }
+}
+  /// Look up an alcoholic drink by exact name
+/// Checks alcohol_beverages first, then user's custom alcoholic drinks
+Future<Beverage?> getAlcoholicBeverageByExactName(String name) async {
+  final supabase = Supabase.instance.client;
+  final userId = supabase.auth.currentUser?.id;
+
+  try {
+    // Check shared alcohol library first
+    final libResult = await supabase
+        .from('alcohol_beverages')
+        .select()
+        .eq('name', name)
+        .maybeSingle();
+
+    if (libResult != null) {
+      return Beverage.fromMap({
+        'id': libResult['id'],
+        'name': libResult['name'],
+        'caffeine_per_oz': 0.0,
+        'hydration_factor': -0.5,
+        'default_volume_oz': libResult['serving_size_oz'] ?? 12,
+        'is_alcoholic': true,
+        'abv': libResult['abv'],
+        'serving_size_oz': libResult['serving_size_oz'],
+      });
+    }
+
+    // Fall back to user's custom alcoholic drinks
+    if (userId != null) {
+      final customResult = await supabase
+          .from('custom_beverages')
+          .select()
+          .eq('user_id', userId)
+          .eq('is_alcoholic', true)
+          .eq('name', name)
+          .maybeSingle();
+
+      if (customResult != null) {
+        return Beverage.fromMap(customResult);
+      }
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 
   Future<List<Beverage>> searchAlcoholicBeverages(String query) async {
     final supabase = Supabase.instance.client;

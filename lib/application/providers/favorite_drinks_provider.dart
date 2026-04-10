@@ -22,8 +22,28 @@ class FavoriteDrinksProvider extends ChangeNotifier {
   
   /// Get only favorites marked for Quick Add
   List<FavoriteDrink> get quickAddFavorites {
-    return _favorites.where((fav) => fav.isQuickAdd).toList();
-  }
+  return _favorites
+      .where((fav) => fav.isQuickAdd && !fav.isAlcoholList)
+      .toList();
+}
+
+  List<FavoriteDrink> get alcoholQuickAddFavorites {
+  return _favorites
+      .where((fav) => fav.isQuickAdd && fav.isAlcoholList)
+      .toList();
+}
+
+  List<FavoriteDrink> get alcoholFavorites {
+  return _favorites
+      .where((fav) => fav.isAlcoholList)
+      .toList();
+}
+
+  bool isFavoriteInList(String beverageName, {bool isAlcoholList = false}) {
+  return _favorites.any((fav) =>
+      fav.beverageName == beverageName &&
+      fav.isAlcoholList == isAlcoholList);
+}
   
   // ==================== LOAD ====================
   
@@ -64,66 +84,71 @@ class FavoriteDrinksProvider extends ChangeNotifier {
   
   /// Add a new favorite drink
   Future<void> addFavorite({
-    required String beverageName,
-    String? displayName,
-    String? customIcon,
-    double? customVolumeOz,
-    bool isQuickAdd = false,
-  }) async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return;
-    
-    try {
-      // Calculate new display order (add to end)
-      final newOrder = _favorites.isEmpty ? 0 : _favorites.length;
-      
-      // Insert into Supabase
-      final data = await _supabase.from('favorite_drinks').insert({
-        'user_id': userId,
-        'beverage_name': beverageName,
-        'display_name': displayName,
-        'custom_icon': customIcon ?? 'local_drink',
-        'custom_volume_oz': customVolumeOz,
-        'display_order': newOrder,
-        'is_quick_add': isQuickAdd,
-      }).select().single();
-      
-      // Add to local list
-      _favorites.add(FavoriteDrink.fromMap(data));
-      notifyListeners();
-      
-      debugPrint('✅ Added favorite: $beverageName');
-    } catch (e) {
-      debugPrint('❌ Error adding favorite: $e');
-      rethrow;
-    }
+  required String beverageName,
+  String? displayName,
+  String? customIcon,
+  double? customVolumeOz,
+  bool isQuickAdd = false,
+  bool isAlcoholList = false,
+}) async {
+  final userId = _supabase.auth.currentUser?.id;
+  if (userId == null) return;
+
+  try {
+    final newOrder = _favorites.isEmpty ? 0 : _favorites.length;
+
+    final data = await _supabase.from('favorite_drinks').insert({
+      'user_id': userId,
+      'beverage_name': beverageName,
+      'display_name': displayName,
+      'custom_icon': customIcon ?? 'local_bar',
+      'custom_volume_oz': customVolumeOz,
+      'display_order': newOrder,
+      'is_quick_add': isQuickAdd,
+      'is_alcohol_list': isAlcoholList,
+    }).select().single();
+
+    _favorites.add(FavoriteDrink.fromMap(data));
+    notifyListeners();
+  } catch (e) {
+    debugPrint('❌ Error adding favorite: $e');
+    rethrow;
   }
+}
   
   // ==================== TOGGLE FAVORITE ====================
   
   /// Toggle favorite status (star on/off)
   /// Returns true if added, false if removed
-  Future<bool> toggleFavorite(String beverageName) async {
-    // Check if already favorite
-    final existingIndex = _favorites.indexWhere(
-      (fav) => fav.beverageName == beverageName,
+  /// Toggle favorite — now list-aware
+Future<bool> toggleFavorite(
+  String beverageName, {
+  bool isAlcoholList = false,
+}) async {
+  final existingIndex = _favorites.indexWhere(
+    (fav) =>
+        fav.beverageName == beverageName &&
+        fav.isAlcoholList == isAlcoholList,
+  );
+
+  if (existingIndex != -1) {
+    await deleteFavorite(_favorites[existingIndex].id);
+    return false;
+  } else {
+    await addFavorite(
+      beverageName: beverageName,
+      isAlcoholList: isAlcoholList,
     );
-    
-    if (existingIndex != -1) {
-      // Already favorite → Remove
-      await deleteFavorite(_favorites[existingIndex].id);
-      return false;
-    } else {
-      // Not favorite → Add
-      await addFavorite(beverageName: beverageName);
-      return true;
-    }
+    return true;
   }
-  
-  /// Check if a beverage is already in favorites
-  bool isFavorite(String beverageName) {
-    return _favorites.any((fav) => fav.beverageName == beverageName);
-  }
+}
+
+/// Updated isFavorite to be list-aware too
+bool isFavorite(String beverageName, {bool isAlcoholList = false}) {
+  return _favorites.any((fav) =>
+      fav.beverageName == beverageName &&
+      fav.isAlcoholList == isAlcoholList);
+}
   
   // ==================== TOGGLE QUICK ADD ====================
   

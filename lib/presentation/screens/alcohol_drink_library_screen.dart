@@ -31,33 +31,32 @@ class _DrinkLibraryScreenState extends State<AlcoholDrinkLibraryScreen> {
 
   // Fetch all beverages from the database
   Future<void> _loadBeverages() async {
-  try {
-    final result = await dao.getAllAlcoholicBeverages(); // ← was getAllBeverages()
-    setState(() {
-      beverages = result;
-      filteredBeverages = result;
-      isLoading = false;
-    });
-  } catch (e) {
-    setState(() => isLoading = false);
-    debugPrint('Error loading beverages: $e');
-  }
-}
-
-// Use the alcohol-specific search
-void _onSearchChanged(String value) async {
-  final query = value.trim().toLowerCase();
-  setState(() => _searchQuery = query);
-
-  if (query.isEmpty) {
-    setState(() => filteredBeverages = beverages);
-    return;
+    try {
+      final result = await dao.getAllAlcoholicBeverages();
+      setState(() {
+        beverages = result;
+        filteredBeverages = result;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      debugPrint('Error loading beverages: $e');
+    }
   }
 
-  // Search Supabase directly for better results
-  final results = await dao.searchAlcoholicBeverages(query);
-  if (mounted) setState(() => filteredBeverages = results);
-}
+  // Use the alcohol-specific search
+  void _onSearchChanged(String value) async {
+    final query = value.trim().toLowerCase();
+    setState(() => _searchQuery = query);
+
+    if (query.isEmpty) {
+      setState(() => filteredBeverages = beverages);
+      return;
+    }
+
+    final results = await dao.searchAlcoholicBeverages(query);
+    if (mounted) setState(() => filteredBeverages = results);
+  }
 
   // Load the user's favorite drinks
   Future<void> _loadFavorites() async {
@@ -81,14 +80,12 @@ void _onSearchChanged(String value) async {
   Widget build(BuildContext context) {
     final favProvider = context.watch<FavoriteDrinksProvider>();
 
-    // Separate the filtered list into favorites and non-favorites
     final favoriteBeverages = filteredBeverages
-        .where((bev) => favProvider.isFavorite(bev.name))
+        .where((bev) => favProvider.isFavorite(bev.name, isAlcoholList: true))
         .toList();
 
-    // DefaultTabController enables the TabBar and TabBarView to sync automatically
     return DefaultTabController(
-      length: 2, // We have two tabs: All Drinks and Favorites
+      length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Alcoholic Drink Library'),
@@ -102,7 +99,6 @@ void _onSearchChanged(String value) async {
             unselectedLabelColor: Colors.grey,
           ),
         ),
-        // A Floating Action Button replaces the old inline button for better UX
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _showDrinkInput(context),
           icon: const Icon(Icons.add),
@@ -112,7 +108,6 @@ void _onSearchChanged(String value) async {
         ),
         body: Column(
           children: [
-            // Static Search Bar at the top
             Padding(
               padding: const EdgeInsets.all(16),
               child: TextField(
@@ -129,24 +124,21 @@ void _onSearchChanged(String value) async {
                 onChanged: _onSearchChanged,
               ),
             ),
-            
-            // The main content area that switches based on the selected tab
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : TabBarView(
                       children: [
-                        // First Tab: All Drinks
                         _buildDrinkList(
-                          filteredBeverages, 
-                          favProvider, 
+                          filteredBeverages,
+                          favProvider,
                           emptyMessage: 'No drinks match your search',
                         ),
-                        // Second Tab: Favorites Only
                         _buildDrinkList(
-                          favoriteBeverages, 
-                          favProvider, 
-                          emptyMessage: 'No favorites yet.\nTap the star to add some!',
+                          favoriteBeverages,
+                          favProvider,
+                          emptyMessage:
+                              'No favorites yet.\nTap the star to add some!',
                         ),
                       ],
                     ),
@@ -157,9 +149,8 @@ void _onSearchChanged(String value) async {
     );
   }
 
-  // Helper method to build the list view for either tab
   Widget _buildDrinkList(
-    List<Beverage> drinkList, 
+    List<Beverage> drinkList,
     FavoriteDrinksProvider favProvider, {
     required String emptyMessage,
   }) {
@@ -174,27 +165,28 @@ void _onSearchChanged(String value) async {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 80), // Padding avoids overlap with FAB
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
       itemCount: drinkList.length,
       itemBuilder: (context, index) {
         final bev = drinkList[index];
-        final favorite = favProvider.favorites
+        final favorite = favProvider.alcoholFavorites
             .where((f) => f.beverageName == bev.name)
             .firstOrNull;
-            
+
         return _buildBeverageCard(bev, favorite, favProvider);
       },
     );
   }
 
-  // Builds the individual card for each beverage
   Widget _buildBeverageCard(
     Beverage beverage,
     FavoriteDrink? favorite,
     FavoriteDrinksProvider favProvider,
   ) {
-    final totalCaffeine = beverage.caffeinePerOz * beverage.defaultVolumeOz;
-    final isFavorite = favProvider.isFavorite(beverage.name);
+    final isFavorite = favProvider.isFavorite(
+      beverage.name,
+      isAlcoholList: true,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -222,7 +214,6 @@ void _onSearchChanged(String value) async {
     );
   }
 
-  // Builds the star icon, including a small green badge if it's set to "Quick Add"
   Widget _buildStarWithBadge({
     required bool isFavorite,
     required bool isQuickAdd,
@@ -262,18 +253,20 @@ void _onSearchChanged(String value) async {
     );
   }
 
-  // Toggles the favorite status of a beverage
   Future<void> _toggleFavorite(String beverageName) async {
     final favProvider = context.read<FavoriteDrinksProvider>();
-    final added = await favProvider.toggleFavorite(beverageName);
+    final added = await favProvider.toggleFavorite(
+      beverageName,
+      isAlcoholList: true,
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             added
-                ? '$beverageName added to favorites'
-                : '$beverageName removed from favorites',
+                ? '$beverageName added to alcohol favorites'
+                : '$beverageName removed from alcohol favorites',
           ),
           duration: const Duration(seconds: 1),
         ),
@@ -281,27 +274,24 @@ void _onSearchChanged(String value) async {
     }
   }
 
-  // Shows the dialog to edit display name, icon, volume, and quick add status
-  Future<void> _showEditDialog(Beverage beverage, FavoriteDrink? favorite) async {
-    final currentVolume = (favorite?.customVolumeOz ?? beverage.defaultVolumeOz).toDouble();
+  Future<void> _showEditDialog(
+      Beverage beverage, FavoriteDrink? favorite) async {
+    final currentVolume =
+        (favorite?.customVolumeOz ?? beverage.defaultVolumeOz).toDouble();
     final isQuickAdd = favorite?.isQuickAdd ?? false;
 
-    final volumeController = TextEditingController(text: currentVolume.toString());
-    final displayNameController = TextEditingController(
-      text: favorite?.displayName ?? '',
-    );
+    final volumeController =
+        TextEditingController(text: currentVolume.toString());
 
     bool tempQuickAdd = isQuickAdd;
     double tempVolume = currentVolume;
-    String? selectedIcon = favorite?.customIcon ?? 'local_drink';
+    String? selectedIcon = favorite?.customIcon ?? 'local_bar';
 
     try {
       await showDialog(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (dialogContext, setDialogState) {
-            final calculatedCaffeine = beverage.caffeinePerOz * tempVolume;
-
             return AlertDialog(
               title: Text('Edit ${beverage.name}'),
               content: SingleChildScrollView(
@@ -309,17 +299,7 @@ void _onSearchChanged(String value) async {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
-                      controller: displayNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Display Name',
-                        hintText: beverage.name,
-                        helperText: 'Name shown on Quick Add button',
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
+                    // ── Icon picker ──────────────────────────────────
                     DropdownButtonFormField<String>(
                       value: selectedIcon,
                       decoration: const InputDecoration(
@@ -328,11 +308,19 @@ void _onSearchChanged(String value) async {
                       ),
                       items: [
                         DropdownMenuItem(
+                          value: 'local_bar',
+                          child: Row(children: [
+                            Icon(_getIcon('local_bar')),
+                            const SizedBox(width: 8),
+                            const Text('Alcohol'),
+                          ]),
+                        ),
+                        DropdownMenuItem(
                           value: 'local_drink',
                           child: Row(children: [
                             Icon(_getIcon('local_drink')),
                             const SizedBox(width: 8),
-                            const Text('Default'),
+                            const Text('Drink'),
                           ]),
                         ),
                         DropdownMenuItem(
@@ -367,14 +355,6 @@ void _onSearchChanged(String value) async {
                             const Text('Energy'),
                           ]),
                         ),
-                        DropdownMenuItem(
-                          value: 'local_bar',
-                          child: Row(children: [
-                            Icon(_getIcon('local_bar')),
-                            const SizedBox(width: 8),
-                            const Text('Alcohol'),
-                          ]),
-                        ),
                       ],
                       onChanged: (value) {
                         setDialogState(() => selectedIcon = value);
@@ -382,6 +362,7 @@ void _onSearchChanged(String value) async {
                     ),
                     const SizedBox(height: 12),
 
+                    // ── Volume ───────────────────────────────────────
                     TextField(
                       controller: volumeController,
                       decoration: const InputDecoration(
@@ -389,7 +370,8 @@ void _onSearchChanged(String value) async {
                         suffixText: 'oz',
                         border: OutlineInputBorder(),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       onChanged: (value) {
                         final vol = double.tryParse(value);
                         if (vol != null && vol > 0) {
@@ -399,30 +381,40 @@ void _onSearchChanged(String value) async {
                     ),
                     const SizedBox(height: 12),
 
+                    // ── ABV info (read-only display) ─────────────────
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.coffee, size: 20, color: Colors.brown),
+                          Icon(Icons.local_bar,
+                              size: 20, color: Colors.orange.shade700),
                           const SizedBox(width: 8),
                           Text(
-                            'Alcohol: 300 mg',                                   //Change once db is implemented
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            'ABV: ${beverage.abv?.toStringAsFixed(1) ?? "—"}%  '
+                            '· ${beverage.standardDrinks(volumeOz: tempVolume).toStringAsFixed(2)} std drinks',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade700,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
 
+                    // ── Quick Add toggle (only if already a favorite) ─
                     if (favorite != null)
                       SwitchListTile(
                         title: const Text('Add to Quick Add'),
-                        subtitle: const Text('Show on home screen'),
+                        subtitle:
+                            const Text('Show on alcohol screen'),
                         value: tempQuickAdd,
+                        activeColor: Colors.orange,
                         onChanged: (value) {
                           setDialogState(() => tempQuickAdd = value);
                         },
@@ -453,21 +445,19 @@ void _onSearchChanged(String value) async {
                     final vol = double.tryParse(volumeController.text);
                     if (vol == null || vol <= 0) {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid volume')),
+                        const SnackBar(
+                            content: Text('Please enter a valid volume')),
                       );
                       return;
                     }
 
-                    final newDisplayName = displayNameController.text.trim().isEmpty
-                        ? null
-                        : displayNameController.text.trim();
-
-                    final favProvider = dialogContext.read<FavoriteDrinksProvider>();
+                    final favProvider =
+                        dialogContext.read<FavoriteDrinksProvider>();
 
                     if (favorite != null) {
+                      // Update existing favorite
                       await favProvider.updateFavorite(
                         id: favorite.id,
-                        displayName: newDisplayName,
                         customIcon: selectedIcon,
                         customVolumeOz: vol,
                       );
@@ -476,12 +466,13 @@ void _onSearchChanged(String value) async {
                         await favProvider.toggleQuickAdd(favorite.id);
                       }
                     } else {
+                      // Add as new favorite — no display name, just the drink name
                       await favProvider.addFavorite(
                         beverageName: beverage.name,
-                        displayName: newDisplayName,
                         customIcon: selectedIcon,
                         customVolumeOz: vol,
                         isQuickAdd: false,
+                        isAlcoholList: true,
                       );
                     }
 
@@ -502,12 +493,10 @@ void _onSearchChanged(String value) async {
       );
     } finally {
       volumeController.dispose();
-      displayNameController.dispose();
     }
   }
 
-  // Show and process the custom drink input dialog
-  void _showDrinkInput(BuildContext context) async {        //Change once db is implemented
+  void _showDrinkInput(BuildContext context) async {
     final drink = await showDialog(
       context: context,
       builder: (context) => DrinkInput(),
@@ -518,12 +507,12 @@ void _onSearchChanged(String value) async {
       double size = drink["size"];
       double alcoholpercentage = drink["alcohol"];
 
-      double alcohol = alcoholpercentage * size;
+      await addDrink(
+        size: size,
+        abvPercent: alcoholpercentage,
+        name: name,
+      );
 
-      // Add data to Supabase
-      await addDrink(size: size, alcohol: alcohol, name: name);
-      
-      // Refresh the list after adding (Important!)
       _loadBeverages();
     }
   }
@@ -538,10 +527,9 @@ void _onSearchChanged(String value) async {
 // External functions and widgets for the Custom Drink feature
 // ------------------------------------------------------------------
 
-// Adds the custom drink to the Supabase database
 Future<void> addDrink({
   required double size,
-  required double alcohol, // ABV percentage entered by user
+  required double abvPercent,
   required String name,
 }) async {
   final supabase = Supabase.instance.client;
@@ -551,7 +539,7 @@ Future<void> addDrink({
   await supabase.from('custom_beverages').insert({
     'user_id': userId,
     'name': name,
-    'abv': alcohol,
+    'abv': abvPercent,
     'default_volume_oz': size,
     'is_alcoholic': true,
     'hydration_factor': -0.5,
@@ -559,7 +547,6 @@ Future<void> addDrink({
   });
 }
 
-// Dialog widget to input custom drink details
 class DrinkInput extends StatefulWidget {
   @override
   _AddCustomDrink createState() => _AddCustomDrink();
@@ -614,9 +601,10 @@ class _AddCustomDrink extends State<DrinkInput> {
                 return null;
               },
             ),
-            TextFormField(                         //Does alcohol instead of caffeine
+            TextFormField(
               controller: _alcoholController,
-              decoration: const InputDecoration(hintText: "Alcohol content (%)"),
+              decoration:
+                  const InputDecoration(hintText: "Alcohol content (%)"),
               keyboardType: TextInputType.number,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -650,11 +638,11 @@ class _AddCustomDrink extends State<DrinkInput> {
               Navigator.of(context).pop({
                 'name': _nameController.text,
                 'size': double.parse(_sizeController.text),
-                'alcohol': double.parse(_alcoholController.text)
+                'alcohol': double.parse(_alcoholController.text),
               });
             }
           },
-        )
+        ),
       ],
     );
   }
