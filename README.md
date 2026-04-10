@@ -2,9 +2,6 @@
 
 **Smarter hydration tracking — not just fluid volume.**
 
-> 🌐 Website & Tutorial: **[wynter106.github.io/HydraTrack](https://wynter106.github.io/HydraTrack/)**  
-> 📱 Download APK: **[Google Drive](https://drive.google.com/uc?export=download&id=1wfZt2eirbZEF-Ru0Nwcwn8dekk1CB4uR)**
-
 Most hydration apps treat every drink the same. HydraTrack applies a **Beverage Hydration Index** to each drink — coffee contributes less toward your daily goal than water, and an energy drink even less. The result is a more accurate picture of actual hydration, not just the total fluid consumed.
 
 Built as a CS 4500 Senior Design Capstone project at the University of Utah, Spring 2026.
