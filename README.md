@@ -191,22 +191,6 @@ Open `ios/Runner.xcworkspace` in Xcode to archive and distribute.
 
 ---
 
-## Testing
-
-```bash
-# Run all unit tests
-flutter test
-
-# Run static analysis
-flutter analyze
-
-# Run analysis (suppress info-level hints)
-flutter analyze --no-fatal-infos --no-fatal-warnings
-```
-
-Tests are located in the `test/` directory. The primary test suite covers the business logic calculators (`MonthlyStatsCalculator`, `HydrationCalculator`, etc.).
-
----
 
 ## Architecture
 
